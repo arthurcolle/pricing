@@ -4,7 +4,7 @@ defmodule Option do
     strike: 100.0,
     expiry: "?"
   ]
-
+  
   def price( option, opts \\ [] ) do
     0
   end
