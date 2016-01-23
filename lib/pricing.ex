@@ -1,0 +1,2 @@
+defmodule Pricing do
+end
