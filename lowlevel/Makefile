@@ -9,7 +9,7 @@ LFLAGS_1 = -lgsl -lgslcblas -lm
 all: $(TARGET).exe
 
 $(TARGET).exe: $(TARGET).o
-		$(CC) $(LFLAGS_0) $(TARGET).o $(LFLAGS_1)	-o $(TARGET).exe
+	$(CC) $(LFLAGS_0) $(TARGET).o $(LFLAGS_1)	-o $(TARGET).exe
 
 $(TARGET).o: $(TARGET).c
 	$(CC) $(CFLAGS) -c $(TARGET).c
