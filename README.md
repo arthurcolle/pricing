@@ -1,6 +1,7 @@
 # Pricing
 
 **TODO: Read in parameters for pricing formula from stdin**
+
 **TODO: American options**
 
 ## Installation
