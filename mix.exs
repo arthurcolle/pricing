@@ -19,7 +19,7 @@ defmodule Pricing.Mixfile do
 
   defp package do
     [ files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md"],
-      maintainers: ["Paul Schoenfelder"],
+      maintainers: ["Arthur Colle"],
       licenses: ["MIT"],
       links: %{ "GitHub": "https://github.com/arthurcolle/pricing" } ]
   end
