@@ -1,4 +1,4 @@
-# Coll&eacute Group License
+# Coll&eacute; Group License
 
 ## Copyright (c) 2015 Arthur M. Coll&eacute;, Colle Group
 
