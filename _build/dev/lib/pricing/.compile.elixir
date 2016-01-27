@@ -7,5 +7,5 @@ v2.
 {<<"_build/dev/lib/pricing/ebin/Elixir.Pricing.beam">>,'Elixir.Pricing',
  module,<<"lib/pricing.ex">>,
  ['Elixir.Kernel','Elixir.Porcelain.Result'],
- [erlang,'Elixir.Poison','Elixir.Porcelain','Elixir.Float','Elixir.Integer'],
+ [erlang,'Elixir.Porcelain','Elixir.Float','Elixir.Integer'],
  [],nil}.

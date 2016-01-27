@@ -13,15 +13,20 @@ defmodule Pricing do
     v = Float.to_string(0.75, [decimals: 2, compact: true])
     dy = Float.to_string(0.001, [decimals: 2, compact: true])
 
-    components = 
-      [{:price, price},
-       {:strike, strike}, 
-       {:rate, rate},
-       {:t, t},
-       {:vol, v}, 
-       {:dy, dy}]
+    components = [
+      {:price, price},
+      {:strike, strike}, 
+      {:rate, rate},
+      {:t, t},
+      {:vol, v}, 
+      {:dy, dy}
+     ]
 
-    [c,p] = Poison.decode!(Pricing.option(components))
-    %{call: c, put: p}
-  end
+     [c, p] =
+      Pricing.option(components)
+      |> Poison.decode!
+
+     [call: c, put: p]
+     |> Enum.into(%{})
+   end
 end
