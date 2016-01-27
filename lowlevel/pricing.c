@@ -26,12 +26,12 @@ double price(
 
 	switch( cp_flag ) {
 		case 'c': 
-			price = ( s * exp_dt * gsl_cdf_ugaussian_P( d1 ) ) -
-							( k * exp_rt * gsl_cdf_ugaussian_P( d2 ) );
+      price = ( s * exp_dt * gsl_cdf_ugaussian_P( d1 ) ) -
+              ( k * exp_rt * gsl_cdf_ugaussian_P( d2 ) );
 			break;
 		case 'p': 
-			price = ( k * exp_rt * gsl_cdf_ugaussian_P( -d2 ) ) -
-							( s * exp_dt * gsl_cdf_ugaussian_P( -d1 ) );
+      price = ( k * exp_rt * gsl_cdf_ugaussian_P( -d2 ) ) -
+              ( s * exp_dt * gsl_cdf_ugaussian_P( -d1 ) );
 			break;
 		default:
 			printf( "Unacceptable option type.\nPlease specify 'c' or 'p'.\n" );
