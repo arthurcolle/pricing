@@ -1,7 +1,7 @@
 # Pricing
 
-**TODO: Read in parameters for pricing formula from stdin
-**TODO: American options
+**TODO: Read in parameters for pricing formula from stdin**
+**TODO: American options**
 
 ```
 iex(2)> Pricing.btc
