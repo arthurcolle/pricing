@@ -1,4 +1,6 @@
 defmodule Pricing do
+	use Timex
+	
 	def option(opts) do
 		[price: price, strike: strike, risk_free_rate: rate, time_to_expiry: time, volatility: vol, dividend_yield: d] = opts
 		args = opts
@@ -8,7 +10,8 @@ defmodule Pricing do
 		IO.puts out
 	end
 
-	def price do
+	def btc do
+		%Timex.DateTime{ms: start} = Date.now()		
 		Pricing.option([	
 			price: "400", 
 			strike: "250", 
@@ -17,5 +20,7 @@ defmodule Pricing do
 			volatility: "0.7", 
 			dividend_yield: "0.00"
 		]) 
+		%Timex.DateTime{ms: nd} = Date.now()
+		IO.puts(nd-start)
 	end
 end

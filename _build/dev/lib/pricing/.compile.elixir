@@ -5,6 +5,7 @@ v2.
  [],[],nil}.
 {<<"_build/dev/lib/pricing/ebin/Elixir.Pricing.beam">>,'Elixir.Pricing',
  module,<<"lib/pricing.ex">>,
- ['Elixir.Porcelain.Result','Elixir.Kernel'],
- ['Elixir.IO','Elixir.Porcelain'],
+ ['Elixir.Porcelain.Result','Elixir.Timex','Elixir.Kernel',
+  'Elixir.Timex.DateTime'],
+ [erlang,'Elixir.IO','Elixir.Timex.Date','Elixir.Porcelain'],
  [],nil}.
