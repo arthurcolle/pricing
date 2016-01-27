@@ -77,43 +77,24 @@ int main ( int argc, char *argv[] )
 
   double discount_rate = atof( argv[6] );
   double d = discount_rate;
-
-  printf( "Underlier price (u): %f\n", s );
-  printf( "   Strike price (s): %f\n", k );
-  printf( " risk free rate (r):   %8f\n", r ); 
-  printf( " Time to expiry (t):   %8f\n", t );
-  printf( "     Volatility (v):   %8f\n", v );
-  printf( " Dividend yield (d):   %8f\n", d );
-  printf( "\n" );
-  long long unsigned int start;
-  long long unsigned int start2;
-  long long unsigned int end;
-  long long unsigned int end2;
-  
-  start = ts2();
-  printf("start time: %llu\n", start);
   double call_price = price( 'c', s, k, r, v, t, d );
-  end = ts2();
-  printf("end time: %llu\n", end);
-  
-  printf( "price call: %f\n",  call_price );
- 
-
-  start2 = ts2();
-printf("start2 time: %llu\n", start2);
-  
   double put_price = price( 'p', s, k, r, v, t, d );
-  end2 = ts2();
-  printf("end2 time: %llu\n", end2);
 
-  printf( "price  put: %f\n", put_price );
+  printf( "{s: %f,", s ); // underlier
+  printf( "k: %f,", k ); // strike price
+  printf( "r: %f,", r ); // risk free rate
+  printf( "t: %f,", t ); // time to expiry
+  printf( "v: %f,", v ); // vol 
+  printf( "d: %f,", d ); // dividend yield   
+  printf("prices: [\"c\":%f, \"p\":%f]}\n", call_price, put_price);
+  // long long unsigned int start;
+  // long long unsigned int start2;
+  // long long unsigned int end;
+  // long long unsigned int end2;
 
-  long long unsigned int call_calc_time = end-start;
-  long long unsigned int put_calc_time = end2-start2;
-  printf(" call calc time: %u\n", (unsigned) call_calc_time);
-  printf("  put calc time: %u\n", (unsigned) put_calc_time);
+  
 
-  printf("%llu\n", ts2());
+  
 
   return 0;
 
