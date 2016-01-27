@@ -14,26 +14,26 @@ double price(
 	double d
 )
 {
-	double sqrt_t = sqrt( t ),
-	       rt = ( r * t ),
-	       vsqrt_t = ( v * sqrt_t ),
-	       d1 = ( ( log( s / k ) + rt ) / vsqrt_t ),
-	       d2 = d1 - vsqrt_t,
-	       dt = ( d * t ),
-	       exp_dt = exp( -dt ),
-	       exp_rt = exp( -rt ),
-	       price = 0;
+  double sqrt_t = sqrt( t ),
+         rt = ( r * t ),
+         vsqrt_t = ( v * sqrt_t ),
+         d1 = ( ( log( s / k ) + rt ) / vsqrt_t ),
+         d2 = d1 - vsqrt_t,
+         dt = ( d * t ),
+         exp_dt = exp( -dt ),
+         exp_rt = exp( -rt ),
+         price = 0;
 
-	switch( cp_flag ) {
-		case 'c': 
+  switch( cp_flag ) {
+    case 'c': 
       price = ( s * exp_dt * gsl_cdf_ugaussian_P( d1 ) ) -
               ( k * exp_rt * gsl_cdf_ugaussian_P( d2 ) );
-			break;
-		case 'p': 
+      break;
+    case 'p': 
       price = ( k * exp_rt * gsl_cdf_ugaussian_P( -d2 ) ) -
               ( s * exp_dt * gsl_cdf_ugaussian_P( -d1 ) );
 			break;
-		default:
+  default:
 			printf( "Unacceptable option type.\nPlease specify 'c' or 'p'.\n" );
 	}
 	return price;
