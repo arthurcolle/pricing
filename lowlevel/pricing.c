@@ -5,13 +5,13 @@
 #include <math.h>
 
 double price(
-	char cp_flag,
-	double s, 
-	double k, 
-	double r,
-	double v,
-	double t, 
-	double d
+  char cp_flag,
+  double s, 
+  double k, 
+  double r,
+  double v,
+  double t, 
+  double d
 )
 {
   double sqrt_t = sqrt( t ),
@@ -32,11 +32,11 @@ double price(
     case 'p': 
       price = ( k * exp_rt * gsl_cdf_ugaussian_P( -d2 ) ) -
               ( s * exp_dt * gsl_cdf_ugaussian_P( -d1 ) );
-			break;
+    break;
   default:
-			printf( "Unacceptable option type.\nPlease specify 'c' or 'p'.\n" );
-	}
-	return price;
+    printf( "Unacceptable option type.\nPlease specify 'c' or 'p'.\n" );
+  }
+  return price;
 }
 
 
