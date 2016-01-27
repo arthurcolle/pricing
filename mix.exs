@@ -3,6 +3,7 @@ defmodule Pricing.Mixfile do
 
   def project do
     [app: :pricing,
+     description: "Pricing financial instruments in Elixir",
      version: "0.0.1",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
@@ -28,7 +29,8 @@ defmodule Pricing.Mixfile do
   defp deps do
     [
       {:timex, "~> 1.0.0"},
-      {:porcelain, "~> 2.0.1"}
+      {:porcelain, "~> 2.0.1"},
+      {:poison, "~> 2.0.1"}
     ]
   end
 end

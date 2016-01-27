@@ -80,13 +80,13 @@ int main ( int argc, char *argv[] )
   double call_price = price( 'c', s, k, r, v, t, d );
   double put_price = price( 'p', s, k, r, v, t, d );
 
-  printf( "{s: %f,", s ); // underlier
-  printf( "k: %f,", k ); // strike price
-  printf( "r: %f,", r ); // risk free rate
-  printf( "t: %f,", t ); // time to expiry
-  printf( "v: %f,", v ); // vol 
-  printf( "d: %f,", d ); // dividend yield   
-  printf("prices: [\"c\":%f, \"p\":%f]}\n", call_price, put_price);
+  // printf( "s: %f\n", s ); // underlier
+  // printf( "k: %f\n", k ); // strike price
+  // printf( "r: %f\n", r ); // risk free rate
+  // printf( "t: %f\n", t ); // time to expiry
+  // printf( "v: %f\n", v ); // vol 
+  // printf( "d: %f\n", d ); // dividend yield   
+  printf("[%f, %f]\n", call_price, put_price);
   // long long unsigned int start;
   // long long unsigned int start2;
   // long long unsigned int end;
