@@ -59,7 +59,6 @@ double price(
 
 int main ( int argc, char *argv[] )
 {
-	// 
   double underlier_price = atof( argv[1] );
   double s = underlier_price;
 
@@ -77,24 +76,11 @@ int main ( int argc, char *argv[] )
 
   double discount_rate = atof( argv[6] );
   double d = discount_rate;
+  
   double call_price = price( 'c', s, k, r, v, t, d );
   double put_price = price( 'p', s, k, r, v, t, d );
 
-  // printf( "s: %f\n", s ); // underlier
-  // printf( "k: %f\n", k ); // strike price
-  // printf( "r: %f\n", r ); // risk free rate
-  // printf( "t: %f\n", t ); // time to expiry
-  // printf( "v: %f\n", v ); // vol 
-  // printf( "d: %f\n", d ); // dividend yield   
   printf("[%f, %f]\n", call_price, put_price);
-  // long long unsigned int start;
-  // long long unsigned int start2;
-  // long long unsigned int end;
-  // long long unsigned int end2;
-
-  
-
-  
 
   return 0;
 

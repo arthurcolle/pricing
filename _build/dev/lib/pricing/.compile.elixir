@@ -1,7 +1,8 @@
 v2.
 {<<"_build/dev/lib/pricing/ebin/Elixir.Option.beam">>,'Elixir.Option',module,
  <<"lib/pricing/instruments/option.ex">>,
- ['Elixir.Module','Elixir.Kernel.Utils','Elixir.Kernel','Elixir.Protocol'],
+ ['Elixir.Kernel','Elixir.Kernel.Utils','Elixir.Module','Elixir.Protocol',
+  'Elixir.Timex.Date','Elixir.Timex'],
  [],[],nil}.
 {<<"_build/dev/lib/pricing/ebin/Elixir.Pricing.beam">>,'Elixir.Pricing',
  module,<<"lib/pricing.ex">>,

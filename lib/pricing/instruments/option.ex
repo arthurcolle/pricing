@@ -1,8 +1,10 @@
 defmodule Option do
-	defstruct [
+	use Timex
+
+  defstruct [
     type: :european, 
     strike: 100.0,
-    expiry: "?"
+    expiry: Date.now()
   ]
   
   def price( option, opts \\ [] ) do
