@@ -42,12 +42,12 @@ double price(
 
 int main ( int argc, char *argv[] )
 {
-
+	// 
   double underlier_price = atof( argv[1] );
   double s = underlier_price;
 
   double strike_price = atof( argv[2] );
-  double k = strike_price;	
+  double k = strike_price;
 
   double risk_free_rate = atof( argv[3] );
   double r = risk_free_rate;

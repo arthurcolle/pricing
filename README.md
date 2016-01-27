@@ -3,6 +3,10 @@
 **TODO: Read in parameters for pricing formula from stdin**
 
 **TODO: American options**
+ 
+```
+ Porcelain.exec("./pricing", ["150 100 0.005 5 0.04 0.00"])
+```
 
 ## Installation
 

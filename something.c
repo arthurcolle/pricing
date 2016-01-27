@@ -1,10 +1,10 @@
 #include <stdio.h>
 
 int main(void) {
-	int a  = 10;
-	double b = 3.0;
+	int a  = 5;
+	int b = 3;
 
-	printf("%d\n", a\b);
+	printf("%d\n", a + b);
 	return 0;
 	
 }
