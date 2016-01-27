@@ -1,12 +1,17 @@
 # Pricing
 
 **TODO: Read in parameters for pricing formula from stdin**
-
 **TODO: American options**
- 
+
 ```
- Porcelain.exec("./pricing", ["150 100 0.005 5 0.04 0.00"])
+iex(2)> Pricing.btc
+{s: 400.000000,k: 250.000000,r: 0.005000,t: 1.000000,v: 0.700000,d: 0.000000,prices: ["c":178.268061, "p":27.021181]}
+
+12           # this is how many milliseconds the call down to the C binary took
+:ok
 ```
+
+
 
 ## Installation
 
