@@ -14,14 +14,14 @@ defmodule Pricing do
     dy = Float.to_string(0.001, [decimals: 2, compact: true])
 
     components = [
-      {:price, price},
-      {:strike, strike}, 
-      {:rate, rate},
-      {:t, t},
-      {:vol, v}, 
-      {:dy, dy}
-     ]
-
+      price: price,
+      strike: strike,
+      rate: rate,
+      t: t,
+      vol: v,
+      dy: dy
+    ]
+    
      [c, p] =
       Pricing.option(components)
       |> Poison.decode!

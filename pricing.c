@@ -5,24 +5,8 @@
 #include <math.h>
 #include <time.h>
 
-// uint64_t ts() {
-//     struct timeval tv;
-//     gettimeofday(&tv,NULL);
-//     return tv.tv_sec*(uint64_t)1000000+tv.tv_usec;
-// }
-
-static unsigned long long ts2() {
-    unsigned int eax, edx;
-    unsigned long long val;
-    __asm__ __volatile__("rdtsc":"=a"(eax), "=d"(edx));
-    val = edx;
-    val = val << 32;
-    val += eax;
-    return val;
-}
-
 double price(
-  char cp_flag,
+  char call_put_flag,
   double s, 
   double k, 
   double r,
@@ -41,7 +25,7 @@ double price(
          exp_rt = exp( -rt ),
          price = 0;
 
-  switch( cp_flag ) {
+  switch( call_put_flag ) {
     case 'c': 
       price = ( s * exp_dt * gsl_cdf_ugaussian_P( d1 ) ) -
               ( k * exp_rt * gsl_cdf_ugaussian_P( d2 ) );
