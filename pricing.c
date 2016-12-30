@@ -7,12 +7,12 @@
 
 double price(
   char call_put_flag,
-  double s, 
-  double k, 
-  double r,
-  double v,
-  double t, 
-  double d
+  double s, // price of underlier
+  double k, // strike
+  double r, // risk free rate
+  double v, // volatility
+  double t, // time to maturity
+  double d // discount rate
 )
 {
   double sqrt_t = sqrt( t ),
@@ -26,11 +26,11 @@ double price(
          price = 0;
 
   switch( call_put_flag ) {
-    case 'c': 
+    case 'c':
       price = ( s * exp_dt * gsl_cdf_ugaussian_P( d1 ) ) -
               ( k * exp_rt * gsl_cdf_ugaussian_P( d2 ) );
       break;
-    case 'p': 
+    case 'p':
       price = ( k * exp_rt * gsl_cdf_ugaussian_P( -d2 ) ) -
               ( s * exp_dt * gsl_cdf_ugaussian_P( -d1 ) );
     break;
@@ -60,13 +60,12 @@ int main ( int argc, char *argv[] )
 
   double discount_rate = atof( argv[6] );
   double d = discount_rate;
-  
+
   double call_price = price( 'c', s, k, r, v, t, d );
   double put_price = price( 'p', s, k, r, v, t, d );
 
-  printf("[%f, %f]\n", call_price, put_price);
+  printf("{\n  call: %f, \n  put: %f\n}\n", call_price, put_price);
 
   return 0;
 
 }
-

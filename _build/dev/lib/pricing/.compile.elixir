@@ -7,6 +7,11 @@ v2.
 {<<"_build/dev/lib/pricing/ebin/Elixir.Pricing.beam">>,'Elixir.Pricing',
  module,<<"lib/pricing.ex">>,
  ['Elixir.Porcelain.Result','Elixir.Kernel'],
- [erlang,'Elixir.Integer','Elixir.Poison','Elixir.Enum','Elixir.Float',
-  'Elixir.Porcelain'],
+ [erlang,'Elixir.Integer','Elixir.Enum','Elixir.Porcelain','Elixir.Poison',
+  'Elixir.Float'],
+ [],nil}.
+{<<"_build/dev/lib/pricing/ebin/Elixir.Swap.beam">>,'Elixir.Swap',module,
+ <<"lib/pricing/instruments/swap.ex">>,
+ ['Elixir.Timex','Elixir.Kernel'],
+ ['Elixir.Timex.Time'],
  [],nil}.

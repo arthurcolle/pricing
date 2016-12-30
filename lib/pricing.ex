@@ -1,4 +1,4 @@
-defmodule Pricing do
+ defmodule Pricing do
   def option(opts \\ []) do
     [price: p, strike: k, rate: r, t: t, vol: v, dy: d] = opts
     %Porcelain.Result{err: err, out: out} = Porcelain.exec("./pricing.exe", [p, k, r, t, v, d])
