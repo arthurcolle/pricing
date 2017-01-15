@@ -64,7 +64,7 @@ int main ( int argc, char *argv[] )
   double call_price = price( 'c', s, k, r, v, t, d );
   double put_price = price( 'p', s, k, r, v, t, d );
 
-  printf("{\n  call: %f, \n  put: %f\n}\n", call_price, put_price);
+  printf("{\"call\": %f,\"put\": %f}", call_price, put_price);
 
   return 0;
 
