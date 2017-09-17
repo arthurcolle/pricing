@@ -31,7 +31,6 @@ defmodule Pricing.Mixfile do
       {:timex, "~> 1.0.0"},
       {:porcelain, "~> 2.0.1"},
       {:poison, "~> 3.1.0"},
-      {:deribit, "~> 0.1.0", [git: "https://github.com/arthurcolle/Deribit.ex"]}
     ]
   end
 end
