@@ -23,7 +23,7 @@ First, add Poison to your `mix.exs` dependencies:
 
 ```elixir
 def deps do
-  [{:poison, "~> 2.0"}]
+  [{:poison, "~> 3.0"}]
 end
 ```
 
@@ -48,7 +48,7 @@ Poison.decode!(~s({"name": "Devin Torres", "age": 27}), as: %Person{})
 #=> %Person{name: "Devin Torres", age: 27}
 
 Poison.decode!(~s({"people": [{"name": "Devin Torres", "age": 27}]}),
-  as: %{"people" => [Person]})
+  as: %{"people" => [%Person{}]})
 #=> %{"people" => [%Person{age: 27, name: "Devin Torres"}]}
 ```
 
@@ -56,6 +56,10 @@ Every component of Poison -- the encoder, decoder, and parser -- are all usable
 on their own without buying into other functionality. For example, if you were
 interested purely in the speed of parsing JSON without a decoding step, you
 could simply call `Poison.Parser.parse`.
+
+If you use Poison 1.x, you have to set a module to `as` option in order to
+decode into a struct. e.g. `as: Person` instead of `as: %Person{}`. The change
+was introduced in 2.0.0.
 
 ## Parser
 
@@ -101,21 +105,61 @@ end
 For maximum performance, make sure you `@derive [Poison.Encoder]` for any struct
 you plan on encoding.
 
+### Encoding only some attributes
+
+When deriving structs for encoding, it is possible to select or exclude specific
+attributes. This is achieved by deriving `Poison.Encoder` with the `:only` or
+`:except` options set:
+
+```elixir
+defmodule PersonOnlyName do
+  @derive {Poison.Encoder, only: [:name]}
+  defstruct [:name, :age]
+end
+
+defmodule PersonWithoutName do
+  @derive {Poison.Encoder, except: [:name]}
+  defstruct [:name, :age]
+end
+```
+
+In case both `:only` and `:except` keys are defined, the `:except` option is
+ignored.
+
+### Key Validation
+
+According to [the JSON spec](https://tools.ietf.org/html/rfc7159#section-4) keys
+in a JSON object should be unique. This is enforced and resolved in different
+ways in other libraries. In the Ruby JSON library for example, the output
+generated from encoding a hash with a duplicate key (say one is a string, the
+other an atom) will include both keys. When parsing JSON of this type, Chromium
+will override all previous values with the final one.
+
+Like Ruby, Poison will also generate JSON with duplicate keys. If you'd like to
+ensure that your generated JSON doesn't have this issue, you can pass the
+`strict_keys: true` option when encoding. This will force the encoding to fail.
+
+Note that validating keys can cause a small performance hit.
+
+```iex
+iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
+** (Poison.EncodeError) duplicate key found: "foo"
+```
+
 ## Benchmarking
 
 ```sh-session
 $ mix deps.get
-$ MIX_ENV=bench mix compile.protocols
-$ MIX_ENV=bench elixir -pa _build/bench/lib/\*/ebin -pa _build/bench/consolidated -S mix bench
+$ MIX_ENV=bench mix compile
+$ MIX_ENV=bench mix bench
 ```
 
 ## License
 
-Poison is released into the public domain (see `UNLICENSE`).
-Poison is also optionally available under the ISC License (see `LICENSE`),
-meant especially for jurisdictions that do not recognize public domain works.
+Poison is released under [CC0-1.0][5] (see `LICENSE`).
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf
 [3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
 [4]: http://prog21.dadgum.com/70.html
+[5]: https://creativecommons.org/publicdomain/zero/1.0/

@@ -37,7 +37,7 @@
 
 -include("hackney.hrl").
 -include("hackney_lib.hrl").
--include_lib("hackney_internal.hrl").
+-include("hackney_internal.hrl").
 
 
 -type url() :: #hackney_url{}.
@@ -205,7 +205,7 @@ request(Method, URL, Headers, Body) ->
 %%  <li><strong>Options:</strong> `[{connect_options, connect_options(),
 %%  {ssl_options, ssl_options()}, Others]'</li>
 %%      <li>`connect_options()': The default connect_options are
-%%      `[binary, {active, false}, {packet, raw}])' . Vor valid options
+%%      `[binary, {active, false}, {packet, raw}])'. For valid options
 %%      see the gen_tcp options.</li>
 %%
 %%      <li>`ssl_options()': See the ssl options from the ssl
@@ -221,6 +221,9 @@ request(Method, URL, Headers, Body) ->
 %%      receive the other messages use the function
 %%      `hackney:stream_next/1'
 %%      </li>
+%%      <li>`{path_encode_fun, fun()}': function used to encode the path. if
+%%      not set it will use `hackney_url:pathencode/1' the function takes the
+%%      binary path as entry and return a new encoded path.</li>
 %%
 %%      <li>`{stream_to, pid()}': If async is true or once, the response
 %%      messages will be sent to this PID.</li>
@@ -295,8 +298,12 @@ request(Method, URL, Headers, Body) ->
     | {ok, client_ref()}
     | {error, term()}.
 request(Method, #hackney_url{}=URL0, Headers, Body, Options0) ->
+    PathEncodeFun = proplists:get_value(path_encode_fun, Options0,
+                                        fun hackney_url:pathencode/1),
+
+
     %% normalize the url encoding
-    URL = hackney_url:normalize(URL0),
+    URL = hackney_url:normalize(URL0, PathEncodeFun),
 
     ?report_trace("request", [{method, Method},
                               {url, URL},
@@ -755,38 +762,36 @@ maybe_redirect1(Location, {ok, S, H, #client{retries=Tries}=Client}=Resp, Req) -
             %% different from  get or head it will return
             %% `{ok, {maybe_redirect, Status, Headers, Client}}' to let
             %% the  user make his choice.
-            case {Location, lists:member(Method, [get, head])} of
-                {_, true} ->
+            case lists:member(Method, [get, head]) of
+                true ->
                     NewReq = {Method, Location, Headers, Body},
                     maybe_redirect(redirect(Client#client{retries=Tries-1}, NewReq),
                                    Req);
-                {_, _} when Client#client.force_redirect =:= true ->
+                false when Client#client.force_redirect =:= true ->
                         NewReq = {Method, Location, Headers, Body},
                         maybe_redirect(redirect(Client#client{retries=Tries-1}, NewReq),
                                        Req);
-                {_, _} ->
+                false ->
                     {ok, {maybe_redirect, S, H, Client}}
             end;
-        false when S =:= 303 ->
+        false when S =:= 303 andalso (Method =:= post orelse
+                                      Client#client.force_redirect =:= true) ->
             %% see other. If method is not POST it is
             %% considered an invalid redirection.
-            case {Location, Method} of
-                {_, post} ->
-                    ?report_debug("redirect request", [{location, Location},
-                                                       {req, Req},
-                                                       {resp, Resp},
-                                                       {tries, Tries}]),
+            ?report_debug("redirect request", [{location, Location},
+                                               {req, Req},
+                                               {resp, Resp},
+                                               {tries, Tries}]),
 
-                    NewReq = {get, Location, [], <<>>},
-                    maybe_redirect(redirect(Client#client{retries=Tries-1}, NewReq),
-                                   Req);
-                {_, _} ->
-                    ?report_debug("invalid redirecttion", [{location, Location},
-                                                           {req, Req},
-                                                           {resp, Resp},
-                                                           {tries, Tries}]),
-                    {error, {invalid_redirection, Resp}}
-            end;
+            NewReq = {get, Location, [], <<>>},
+            maybe_redirect(redirect(Client#client{retries=Tries-1}, NewReq),
+                           Req);
+        false when S =:= 303 ->
+            ?report_debug("invalid redirecttion", [{location, Location},
+                                                   {req, Req},
+                                                   {resp, Resp},
+                                                   {tries, Tries}]),
+            {error, {invalid_redirection, Resp}};
         _ ->
             Resp
     end.

@@ -1,6 +1,10 @@
 -module(idna_unicode).
 
--export([compose/1, decompose/1, downcase/1, normalize_kc/1, sort_canonical/1]).
+-export([compose/1,
+         decompose/1,
+         downcase/1,
+         normalize_kc/1,
+         sort_canonical/1]).
 
 %%============================================================================
 %% Constants
@@ -24,6 +28,10 @@
 
 -define(HANGUL_SCOUNT, 11172). % ?HANGUL_LCOUNT * ?HANGUL_NCOUNT
 
+-define(COMBINING_CLASS, 1).
+-define(DECOMPOSITION, 2).
+-define(LOWERCASE_MAPPING, 3).
+
 %%============================================================================
 %% API
 %%============================================================================
@@ -31,11 +39,16 @@
 compose([]) ->
     [];
 compose([Starter|Unicode]) ->
-    StarterCC = case idna_unicode_data:combining_class(Starter) of 0 -> 0; _ -> 256 end,
+    StarterCC = case combining_class(Starter) of
+                    0 -> 0;
+                    _ -> 256
+                end,
     compose(Starter, StarterCC, Unicode, []).
 
 decompose(Unicode) ->
-    lists:reverse(lists:foldl(fun(CP, Acc) -> codepoint_decompose(CP, Acc) end, [], Unicode)).
+    lists:reverse(lists:foldl(fun(CP, Acc) ->
+                                      codepoint_decompose(CP, Acc)
+                              end, [], Unicode)).
 
 downcase(Unicode) ->
     [codepoint_downcase(CP) || CP <- Unicode].
@@ -62,31 +75,35 @@ compose(Starter, StarterCC, [CP|Unicode], Acc) ->
     Composite = compose_pair(Starter, CP),
     case StarterCC =:= 0 andalso Composite =/= undefined of
         true ->
-            compose(Composite, idna_unicode_data:combining_class(Composite), Unicode, Acc);
+            compose(Composite, combining_class(Composite),
+                    Unicode, Acc);
         false ->
-            compose(CP, idna_unicode_data:combining_class(CP), Unicode, [Starter|Acc])
+            compose(CP, combining_class(CP), Unicode,
+                    [Starter|Acc])
     end.
 
 compose_pair(A, B) when
-        A >= ?HANGUL_LBASE andalso
-        A < (?HANGUL_LBASE + ?HANGUL_LCOUNT) andalso
-        B >= ?HANGUL_LBASE andalso
-        B < (?HANGUL_VBASE + ?HANGUL_VCOUNT) ->
-    ?HANGUL_SBASE + ((A - ?HANGUL_LBASE) * ?HANGUL_VCOUNT + (B - ?HANGUL_VBASE)) * ?HANGUL_TCOUNT;
+      A >= ?HANGUL_LBASE andalso
+      A < (?HANGUL_LBASE + ?HANGUL_LCOUNT) andalso
+      B >= ?HANGUL_LBASE andalso
+      B < (?HANGUL_VBASE + ?HANGUL_VCOUNT) ->
+    ?HANGUL_SBASE + ((A - ?HANGUL_LBASE) * ?HANGUL_VCOUNT +
+                     (B - ?HANGUL_VBASE)) * ?HANGUL_TCOUNT;
 compose_pair(A, B) when
-        A >= ?HANGUL_SBASE andalso
-        A < (?HANGUL_SBASE + ?HANGUL_SCOUNT) andalso
-        ((A - ?HANGUL_SBASE) rem ?HANGUL_TCOUNT) =:= 0 andalso
-        B >= ?HANGUL_TBASE andalso
-        B < (?HANGUL_TBASE + ?HANGUL_TCOUNT) ->
+      A >= ?HANGUL_SBASE andalso
+      A < (?HANGUL_SBASE + ?HANGUL_SCOUNT) andalso
+      ((A - ?HANGUL_SBASE) rem ?HANGUL_TCOUNT) =:= 0 andalso
+      B >= ?HANGUL_TBASE andalso
+      B < (?HANGUL_TBASE + ?HANGUL_TCOUNT) ->
     A + (B - ?HANGUL_TBASE);
 compose_pair(A, B) ->
-    idna_unicode_data:composition(A, B).
+    composition(A, B).
 
-codepoint_decompose(CP, Acc) when CP >= ?HANGUL_SBASE andalso CP < (?HANGUL_SBASE + ?HANGUL_SCOUNT) ->
+codepoint_decompose(CP, Acc) when
+      CP >= ?HANGUL_SBASE andalso CP < (?HANGUL_SBASE + ?HANGUL_SCOUNT) ->
     lists:reverse(decompose_hangul(CP), Acc);
 codepoint_decompose(CP, Acc) ->
-    case idna_unicode_data:compat(CP) of
+    case compat(CP) of
         {error, bad_codepoint} ->
             [CP|Acc];
         undefined ->
@@ -113,7 +130,7 @@ decompose_hangul(CP) ->
     end.
 
 codepoint_downcase(CP) ->
-    case idna_unicode_data:lowercase(CP) of
+    case lowercase(CP) of
         {error, bad_codepoint} ->
             CP;
         Lowercase ->
@@ -127,13 +144,69 @@ sort_canonical(Unicode, I, Length) ->
         false ->
             Last = array:get(I - 1, Unicode),
             CP = array:get(I, Unicode),
-            LastCC = idna_unicode_data:combining_class(Last),
-            CC = idna_unicode_data:combining_class(CP),
+            LastCC = combining_class(Last),
+            CC = combining_class(CP),
             case CC =/= 0 andalso LastCC =/= 0 andalso LastCC > CC of
                 true ->
                     NextI = case I > 1 of true -> I - 1; false -> I end,
-                    sort_canonical(array:set(I - 1, CP, array:set(I, Last, Unicode)), NextI, Length);
+                    sort_canonical(array:set(I - 1, CP,
+                                             array:set(I, Last, Unicode)),
+                                   NextI, Length);
                 false ->
                     sort_canonical(Unicode, I + 1, Length)
             end
+    end.
+
+
+%% IDNA data functions
+combining_class(C) ->
+    case lookup(C) of
+        false -> 0;
+        Props ->
+            erlang:list_to_integer(element(?COMBINING_CLASS, Props))
+    end.
+
+compat(C) ->
+    lookup(C, fun(Props) ->
+                      case element(?DECOMPOSITION, Props) of
+                          [] -> undefined;
+                          Val ->
+                              Tokens = string:tokens(Val, " "),
+                              CodePoints = dehex(case hd(Val) of
+                                                     $< -> tl(Tokens);
+                                                     _ -> Tokens
+                                                 end),
+                              CodePoints
+                      end
+              end).
+
+composition(A, B) ->
+    Key = lists:flatten([hex(A), " ", hex(B)]),
+    case idna_unicode_data2:decomposition(Key) of
+        false -> undefined;
+        Val -> erlang:list_to_integer(Val, 16)
+    end.
+
+
+lowercase(C) ->
+    lookup(C, fun(Props) ->
+                case element(?LOWERCASE_MAPPING, Props) of
+                    [] -> C;
+                    Hex -> erlang:list_to_integer(Hex, 16)
+                end
+        end).
+
+hex(Codepoint) ->
+    string:right(erlang:integer_to_list(Codepoint, 16), 4, $0).
+
+dehex(Strings) ->
+    [erlang:list_to_integer(String, 16) || String <- Strings].
+
+lookup(Codepoint) ->
+    idna_unicode_data1:l(hex(Codepoint)).
+
+lookup(Codepoint, Fun) ->
+    case lookup(Codepoint) of
+        false -> {error, bad_codepoint};
+        Props -> Fun(Props)
     end.

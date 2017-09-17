@@ -1,0 +1,13 @@
+{application,deribit,
+             [{applications,[kernel,stdlib,elixir,logger,httpoison,socket,
+                             poison,hackney,ecto]},
+              {description,"deribit"},
+              {modules,['Elixir.Deribit.API.Base',
+                        'Elixir.Deribit.API.Booking',
+                        'Elixir.Deribit.API.Public','Elixir.Deribit.Config',
+                        'Elixir.Deribit.Helpers.Cache',
+                        'Elixir.Deribit.Helpers.Macros',
+                        'Elixir.Deribit.Helpers.Utils']},
+              {registered,[]},
+              {vsn,"0.1.0"},
+              {extra_applications,[logger,httpoison]}]}.

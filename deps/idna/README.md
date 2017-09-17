@@ -1,25 +1,26 @@
-erlang-idna
-===========
-
+## erlang-idna
 
 A pure Erlang IDNA implementation.
 
 
-Quick start
------------
+## Usage
 
-    $ make
-    ...
-    $ erl -pa ebin -s idna
-    ...
-    1> Domain = xmerl_ucs:from_utf8("www.詹姆斯.com").
-    ...
-    2> idna:to_ascii(Domain).
-    ...
+```erlang
+1> Domain = xmerl_ucs:from_utf8("www.詹姆斯.com").
+...
+2> idna:to_ascii(Domain).
+...
+```
+
+> Note: to regenerate the datafile, run the following commandline:
+>
+>	$ ./mkdata.sh
+>
+> Then recompile.
 
 
-Useful references
------------------
+
+## Useful references
 
 [RFC3490](http://www.ietf.org/rfc/rfc3490.txt) (IDNA)
 
