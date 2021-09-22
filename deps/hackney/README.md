@@ -2,15 +2,15 @@
 
 # hackney - HTTP client library in Erlang #
 
-Copyright (c) 2012-2016 Benoît Chesneau.
+Copyright (c) 2012-2021 Benoît Chesneau.
 
-__Version:__ 1.6.1
+__Version:__ 1.17.4
 
 # hackney
 
 **hackney** is an HTTP client library for Erlang.
 
-[![Build Status](https://travis-ci.org/benoitc/hackney.png?branch=master)](https://travis-ci.org/benoitc/hackney)
+[![Build Status](https://github.com/benoitc/hackney/workflows/build/badge.svg)](https://github.com/benoitc/hackney/actions?query=workflow%3Abuild)
 [![Hex pm](http://img.shields.io/hexpm/v/hackney.svg?style=flat)](https://hex.pm/packages/hackney)
 
 ## Main features:
@@ -63,11 +63,10 @@ to get the last changelog.
 Download the sources from our [Github
 repository](http://github.com/benoitc/hackney)
 
-To build the application simply run 'make'. This should build .beam, .app
-files and documentation.
+To build the application simply run 'rebar3 compile'.
 
-To run tests run 'make test'.
-To generate doc, run 'make doc'.
+To run tests run 'rebar3 eunit'.
+To generate doc, run 'rebar3 edoc'.
 
 Or add it to your rebar config
 
@@ -101,9 +100,9 @@ $ ./rebar3 shell
 It is suggested that you install rebar3 user-wide as described [here](http://blog.erlware.org/rebar3-features-part-1-local-install-and-upgrade/).
 This fixes zsh (and maybe other shells) escript-related bugs. Also this should speed things up.
 
-```erlang-repl
+```erlang
 
-1>> hackney:start().
+> application:ensure_all_started(hackney).
 ok
 ```
 
@@ -150,7 +149,7 @@ where `Method`, can be any HTTP method in lowercase.
 ### Read the body
 
 ```erlang
-{ok, Body} = hackney:body(Client).
+{ok, Body} = hackney:body(ClientRef).
 ```
 
 `hackney:body/1` fetch the body. To fetch it by chunk you can use the
@@ -159,7 +158,7 @@ where `Method`, can be any HTTP method in lowercase.
 ```erlang
 
 read_body(MaxLength, Ref, Acc) when MaxLength > byte_size(Acc) ->
-	case stream_body(Ref) of
+	case hackney:stream_body(Ref) of
 		{ok, Data} ->
 			read_body(MaxLength, Ref, << Acc/binary, Data/binary >>);
 		done ->
@@ -171,6 +170,8 @@ read_body(MaxLength, Ref, Acc) when MaxLength > byte_size(Acc) ->
 
 > Note: you can also fetch a multipart response using the functions
 > `hackney:stream_multipart/1` and  `hackney:skip_multipart/1`.
+
+> Note 2: using the `with_body` option will return the body directy instead of a reference.
 
 ### Reuse a connection
 
@@ -185,15 +186,23 @@ couple of requests.
 
 ```erlang
 
-Transport = hackney_tcp_transport,
-Host = << "https://friendpaste.com" >>,
+Transport = hackney_ssl,
+Host = << "friendpaste.com" >>,
 Port = 443,
 Options = [],
-{ok, ConnRef} = hackney:connect(Transport, Host, Port, Options)
+{ok, ConnRef} = hackney:connect(Transport, Host, Port, Options).
 ```
 
 > To create a connection that will use an HTTP proxy use
 > `hackney_http_proxy:connect_proxy/5` instead.
+
+#### To get local and remote ip and port information of a connection:
+
+```erlang
+
+> hackney:peername(ConnRef).
+> hackney:sockname(ConnRef).
+```
 
 #### Make a request
 
@@ -206,15 +215,15 @@ ReqBody = << "{	\"snippet\": \"some snippet\" }" >>,
 ReqHeaders = [{<<"Content-Type">>, <<"application/json">>}],
 NextPath = <<"/">>,
 NextMethod = post,
-NextReq = {NextMethod, NextPath, ReqHeaders, ReqBody}
-{ok, _, _, ConnRef} = hackney:send_request(ConnRef, NextReq).
-{ok, Body1} = hackney:body(ConnRef),
+NextReq = {NextMethod, NextPath, ReqHeaders, ReqBody},
+{ok, _, _, ConnRef} = hackney:send_request(ConnRef, NextReq),
+{ok, Body1} = hackney:body(ConnRef).
 ```
 
 Here we are posting a JSON payload to '/' on the friendpaste service to
 create a paste. Then we close the client connection.
 
-> If your connection supports keepalive the connection will be simply :
+> If your connection supports keepalive the connection will be kept open until you close it exclusively.
 
 ### Send a body
 
@@ -222,11 +231,12 @@ hackney helps you send different payloads by passing different terms as
 the request body:
 
 - `{form, PropList}` : To send a form
-- `{multipart, Parts}` : to send you body using the multipart API. Parts
+- `{multipart, Parts}` : to send your body using the multipart API. Parts
   follow this format:
   - `eof`: end the multipart request
   - `{file, Path}`: to stream a file
   - `{file, Path, ExtraHeaders}`: to stream a file
+  - `{file, Path, Name, ExtraHeaders}` : to send a file with DOM element name and extra headers
   - `{Name, Content}`: to send a full part
   - `{Name, Content, ExtraHeaders}`: to send a full part
   - `{mp_mixed, Name, MixedBoundary}`: To notify we start a part with a
@@ -316,7 +326,7 @@ LoopFun(LoopFun, ClientRef).
 > synchronously using the function `hackney:stop_async/1` See the
 > example [test_async_once2](https://github.com/benoitc/hackney/blob/master/examples/test_async_once2.erl) for the usage.
 
-> **Note 4**:  When the option `{following_redirect, true}` is passed to
+> **Note 4**:  When the option `{follow_redirect, true}` is passed to
 > the request, you will receive the folllowing messages on valid
 > redirection:
 > - `{redirect, To, Headers}`
@@ -327,9 +337,10 @@ LoopFun(LoopFun, ClientRef).
 
 ### Use the default pool
 
-To reuse a connection globally in your application you can also use a
-socket pool. On startup, hackney launches a pool named default. To use it
-do the following:
+Hackney uses socket pools to reuse connections globally. By default,
+hackney uses a pool named `default`. You may want to use different
+pools in your application which allows you to maintain a group of
+connections. To use a different pool, do the following:
 
 ```erlang
 
@@ -337,16 +348,15 @@ Method = get,
 URL = <<"https://friendpaste.com">>,
 Headers = [],
 Payload = <<>>,
-Options = [{pool, default}],
+Options = [{pool, mypool}],
 {ok, StatusCode, RespHeaders, ClientRef} = hackney:request(Method, URL, Headers,
                                                         Payload, Options).
 ```
 
-By adding the tuple `{pool, default}` to the options, hackney will use
-the connections stored in that pool.
-
-You can also use different pools in your application which allows
-you to maintain a group of connections.
+By adding the tuple `{pool, mypool}` to the options, hackney will use
+the connections stored in that pool. The pool gets started automatically
+the first time it is used. You can also explicitly configure and start
+the pool like this:
 
 ```erlang
 
@@ -369,7 +379,11 @@ hackney_pool:stop_pool(PoolName).
 > Note: Sometimes you want to disable the default pool in your app
 > without having to set the client option each time. You can now do this
 > by setting the hackney application environment key `use_default_pool`
-> to false.
+> to false. This means that hackney will not use socket pools unless
+> specifically requested using the `pool` option as described above.
+>
+> To disable socket pools for a single request, specify the option
+> `{pool, false}`.
 
 ### Use a custom pool handler.
 
@@ -381,7 +395,9 @@ behaviour.
 
 See for example the
 [hackney_disp](https://github.com/benoitc/hackney_disp) a load-balanced
-Pool dispatcher based on dispcount].> Note: for now you can`t force the pool handler / client.
+Pool dispatcher based on dispcount].
+
+> Note: for now you can`t force the pool handler / client.
 
 ### Automatically follow a redirection
 
@@ -409,6 +425,51 @@ Options = [{follow_redirect, true}, {max_redirect, 5}],
 {ok, S, H, Ref} = hackney:request(Method, URL, ReqHeaders,
                                      ReqBody, Options),
 {ok, Body1} = hackney:body(Ref).
+```
+
+### Use SSL/TLS with self signed certificates
+
+Hackney uses CA bundles adapted from Mozilla by
+[certifi](https://hex.pm/packages/certifi).
+Recognising an organisation specific (self signed) certificates is possible
+by providing the necessary `ssl_options`. Note that `ssl_options` overrides all
+options passed to the ssl module.
+
+ex (>= Erlang 21):
+
+```erlang
+
+CACertFile = <path_to_self_signed_ca_bundle>,
+CrlCheckTimeout = 5000,
+SSLOptions = [
+{verify, verify_peer},
+{versions, ['tlsv1.2']},
+{cacertfile, CACertFile},
+{crl_check, peer},
+{crl_cache, {ssl_crl_cache, {internal, [{http, CrlCheckTimeout}]}}},
+{customize_hostname_check,
+  [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}],
+
+Method = get,
+URL = "http://my-organisation/",
+ReqHeaders = [],
+ReqBody = <<>>,
+Options = [{ssl_options, SSLoptions}],
+{ok, S, H, Ref} = hackney:request(Method, URL, ReqHeaders,
+                                  ReqBody, Options),
+
+%% To provide client certificate:
+
+CertFile = <path_to_client_certificate>,
+KeyFile = <path_to_client_private_key>,
+SSLOptions1 = SSLoptions ++ [
+{certfile, CertFile},
+{keyfile, KeyFile}
+],
+Options1 = [{ssl_options, SSLoptions1}],
+{ok, S1, H1, Ref1} = hackney:request(Method, URL, ReqHeaders,
+                                     ReqBody, Options1).
+
 ```
 
 ### Proxy a connection
@@ -443,7 +504,7 @@ API matching that of the hackney metrics module.
 To  use [folsom](https://github.com/boundary/folsom), specify `{mod_metrics,
 folsom}`, or if you want to use
 [exometer](https://github.com/feuerlabs/exometer), specify`{mod_metrics,
-exometers}` and ensure that folsom or exometer is in your code path and has
+exometer}` and ensure that folsom or exometer is in your code path and has
 been started.
 
 #### Generic Hackney metrics
@@ -456,24 +517,26 @@ been started.
 
 #### Metrics per Hosts
 
-|Name                        |Type     | Description                |
-|----------------------------|---------|----------------------------|
-|hackney.HOST.nb_requests    |counter  | Number of running requests |
-|hackney.HOST.request_time   |histogram| Request time               |
-|hackney.HOST.connect_time   |histogram| Connect time               |
-|hackney.HOST.response_time  |histogram| Response time              |
-|hackney.HOST.connect_timeout|counter  | Number of connect timeout  |
-|hackney.HOST.connect_error  |counter  | Number of timeout errors   |
+|Name                              |Type     | Description                               |
+|----------------------------------|---------|-------------------------------------------|
+|hackney.HOST.nb_requests          |counter  | Number of running requests                |
+|hackney.HOST.request_time         |histogram| Request time                              |
+|hackney.HOST.connect_time         |histogram| Connect time                              |
+|hackney.HOST.response_time        |histogram| Response time                             |
+|hackney.HOST.connect_timeout      |counter  | Number of connect timeout                 |
+|hackney.HOST.connect_error        |counter  | Number of timeout errors                  |
+|hackney_pool.HOST.new_connection  |counter  | Number of new pool connections per host   |
+|hackney_pool.HOST.reuse_connection|counter  | Number of reused pool connections per host|
 
 #### Metrics per Pool
 
-|Name                          |Type       | Description                                                        |
-|------------------------------|-----------|--------------------------------------------------------------------|
-|hackney.POOLNAME.take_rate    |meter    | meter recording rate at which a connection is retrieved from the pool|
-|hackney.POOLNAME.no_socket    |counter  | Count of new connections                                             |
-|hackney.POOLNAME.in_use_count |histogram| How many connections from the pool are used                          |
-|hackney.POOLNAME.free_count   |counter  | Number of free sockets in the pool                                   |
-|hackney.POOLNAME.queue_counter|histogram| queued clients                                                       |
+|Name                              |Type     | Description                                                          |
+|----------------------------------|---------|----------------------------------------------------------------------|
+|hackney_pool.POOLNAME.take_rate   |meter    | meter recording rate at which a connection is retrieved from the pool|
+|hackney_pool.POOLNAME.no_socket   |counter  | Count of new connections                                             |
+|hackney_pool.POOLNAME.in_use_count|histogram| How many connections from the pool are used                          |
+|hackney_pool.POOLNAME.free_count  |histogram| Number of free sockets in the pool                                   |
+|hackney_pool.POOLNAME.queue_count |histogram| queued clients                                                       |
 
 ## Contribute
 
@@ -509,7 +572,7 @@ Running the tests:
 
 ```
 $ gunicorn --daemon --pid httpbin.pid httpbin:app
-$ make test
+$ rebar3 eunit
 $ kill `cat httpbin.pid`
 ```
 
@@ -522,22 +585,27 @@ $ kill `cat httpbin.pid`
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_app.md" class="module">hackney_app</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_bstr.md" class="module">hackney_bstr</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_connect.md" class="module">hackney_connect</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_connection.md" class="module">hackney_connection</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_connections.md" class="module">hackney_connections</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_cookie.md" class="module">hackney_cookie</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_date.md" class="module">hackney_date</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_headers.md" class="module">hackney_headers</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_headers_new.md" class="module">hackney_headers_new</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_http.md" class="module">hackney_http</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_http_connect.md" class="module">hackney_http_connect</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_local_tcp.md" class="module">hackney_local_tcp</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_manager.md" class="module">hackney_manager</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_metrics.md" class="module">hackney_metrics</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_multipart.md" class="module">hackney_multipart</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_pool.md" class="module">hackney_pool</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_pool_handler.md" class="module">hackney_pool_handler</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_request.md" class="module">hackney_request</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_response.md" class="module">hackney_response</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_socks5.md" class="module">hackney_socks5</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_ssl_transport.md" class="module">hackney_ssl_transport</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_ssl.md" class="module">hackney_ssl</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_stream.md" class="module">hackney_stream</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_sup.md" class="module">hackney_sup</a></td></tr>
-<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_tcp_transport.md" class="module">hackney_tcp_transport</a></td></tr>
+<tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_tcp.md" class="module">hackney_tcp</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_trace.md" class="module">hackney_trace</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_url.md" class="module">hackney_url</a></td></tr>
 <tr><td><a href="http://github.com/benoitc/hackney/blob/master/doc/hackney_util.md" class="module">hackney_util</a></td></tr></table>

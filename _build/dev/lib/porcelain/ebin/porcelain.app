@@ -1,5 +1,6 @@
 {application,porcelain,
-             [{description,"Porcelain implements a saner approach to launching and communicating with external OS processes from Elixir. Built on top of Erlang's ports, it provides richer functionality and simpler API."},
+             [{applications,[kernel,stdlib,elixir,logger,crypto]},
+              {description,"Porcelain implements a saner approach to launching and communicating with external OS processes from Elixir. Built on top of Erlang's ports, it provides richer functionality and simpler API."},
               {modules,['Elixir.Porcelain','Elixir.Porcelain.App',
                         'Elixir.Porcelain.Driver.Basic',
                         'Elixir.Porcelain.Driver.Common',
@@ -9,6 +10,5 @@
                         'Elixir.Porcelain.Result',
                         'Elixir.Porcelain.UsageError']},
               {registered,[]},
-              {vsn,"2.0.1"},
-              {applications,[kernel,stdlib,elixir,logger]},
+              {vsn,"2.0.3"},
               {mod,{'Elixir.Porcelain.App',[]}}]}.

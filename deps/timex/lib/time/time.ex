@@ -284,7 +284,7 @@ defmodule Timex.Time do
   def diff({_,_,_} = t1, {_,_,_} = t2, :timestamp) do
     microsecs = :timer.now_diff(t1, t2)
     mega  = div(microsecs, 1_000_000_000_000)
-    secs  = div(microsecs, 1_000_000 - mega*1_000_000)
+    secs  = div(microsecs - mega*1_000_000_000_000, 1_000_000)
     micro = rem(microsecs, 1_000_000)
     {mega, secs, micro}
   end
@@ -347,13 +347,9 @@ defmodule Timex.Time do
 
   defp normalize({mega, sec, micro}) do
     # TODO: check for negative values
-    if micro >= @million do
-      { sec, micro } = mdivmod(sec, micro)
-    end
+    { sec, micro } = mdivmod(sec, micro)
 
-    if sec >= @million do
-      { mega, sec } = mdivmod(mega, sec)
-    end
+    { mega, sec } = mdivmod(mega, sec)
 
     { mega, sec, micro }
   end

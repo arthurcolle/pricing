@@ -8,8 +8,6 @@ defmodule Combine.Parsers.Text do
   alias Combine.Parsers.Base
   use Combine.Helpers
 
-  @type parser :: Combine.Parsers.Base.parser
-
   @lower_alpha   ?a..?z |> Enum.to_list
   @upper_alpha   ?A..?Z |> Enum.to_list
   @alpha         @lower_alpha ++ @upper_alpha
@@ -26,7 +24,7 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("Hi", char)
+      ...> Combine.parse("Hi", char())
       ["H"]
   """
   @spec char() :: parser
@@ -54,7 +52,7 @@ defmodule Combine.Parsers.Text do
       ["H"]
   """
   @spec char(parser | String.t | pos_integer) :: parser
-  @spec char(parser, String.t | pos_integer) :: parser
+  @spec char(previous_parser, String.t | pos_integer) :: parser
   def char(c) when is_integer(c) do
     fn state -> char_impl(state, c) end
   end
@@ -98,8 +96,7 @@ defmodule Combine.Parsers.Text do
       ...> Combine.parse("aaaaabbbbb", parser)
       ['aaaaa']
   """
-  @spec take_while((char -> boolean)) :: parser
-  @spec take_while(parser, (char -> boolean)) :: parser
+  @spec take_while(previous_parser, (char -> boolean)) :: parser
   defparser take_while(%ParserState{status: :ok} = state, predicate) when is_function(predicate, 1) do
     take_while_loop(state, predicate, [])
   end
@@ -118,13 +115,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("hi", letter)
+      ...> Combine.parse("hi", letter())
       ["h"]
-      ...> Combine.parse("hi", char("h") |> letter)
+      ...> Combine.parse("hi", char("h") |> letter())
       ["h", "i"]
   """
-  @spec letter() :: parser
-  @spec letter(parser) :: parser
+  @spec letter(previous_parser) :: parser
   defparser letter(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in @alpha do
       %{state | :column => col + 1, :input => rest, :results => [<<c::utf8>>|results]}
@@ -142,13 +138,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("Hi", upper)
+      ...> Combine.parse("Hi", upper())
       ["H"]
-      ...> Combine.parse("HI", char("H") |> upper)
+      ...> Combine.parse("HI", char("H") |> upper())
       ["H", "I"]
   """
-  @spec upper() :: parser
-  @spec upper(parser) :: parser
+  @spec upper(previous_parser) :: parser
   defparser upper(%ParserState{status: :ok, line: line, column: col, input: <<cp::utf8, rest::binary>>, results: results} = state) do
     cstr = <<cp::utf8>>
     cond do
@@ -166,13 +161,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("hi", lower)
+      ...> Combine.parse("hi", lower())
       ["h"]
-      ...> Combine.parse("Hi", char("H") |> lower)
+      ...> Combine.parse("Hi", char("H") |> lower())
       ["H", "i"]
   """
-  @spec lower() :: parser
-  @spec lower(parser) :: parser
+  @spec lower(previous_parser) :: parser
   defparser lower(%ParserState{status: :ok, line: line, column: col, input: <<cp::utf8, rest::binary>>, results: results} = state) do
     cstr = <<cp::utf8>>
     cond do
@@ -190,14 +184,13 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("  ", space)
+      ...> Combine.parse("  ", space())
       [" "]
-      ...> parser = char("h") |> char("i") |> space |> char("!")
+      ...> parser = char("h") |> char("i") |> space() |> char("!")
       ...> Combine.parse("hi !", parser)
       ["h", "i", " ", "!"]
   """
-  @spec space() :: parser
-  @spec space(parser) :: parser
+  @spec space(previous_parser) :: parser
   defparser space(%ParserState{status: :ok, column: col, input: <<?\s::utf8,rest::binary>>, results: results} = state) do
     %{state | :column => col + 1, :input => rest, :results => [" "|results]}
   end
@@ -215,15 +208,13 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("   hi!", spaces)
+      ...> Combine.parse("   hi!", spaces())
       [" "]
-      ...> Combine.parse("Hi   Paul", string("Hi") |> spaces |> string("Paul"))
+      ...> Combine.parse("Hi   Paul", string("Hi") |> spaces() |> string("Paul"))
       ["Hi", " ", "Paul"]
   """
-  @spec spaces() :: parser
-  @spec spaces(parser) :: parser
-  def spaces(),       do: Base.map(Base.many1(space), fn _ -> " " end)
-  def spaces(parser), do: parser |> Base.map(Base.many1(space), fn _ -> " " end)
+  @spec spaces(previous_parser) :: parser
+  def spaces(parser \\ nil), do: parser |> Base.map(Base.many1(space()), fn _ -> " " end)
 
   @doc """
   This parser will parse a single tab character from the input.
@@ -231,14 +222,13 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("\t", tab)
+      ...> Combine.parse("\t", tab())
       ["\t"]
-      ...> parser = char("h") |> char("i") |> tab |> char("!")
+      ...> parser = char("h") |> char("i") |> tab() |> char("!")
       ...> Combine.parse("hi\t!", parser)
       ["h", "i", "\t", "!"]
   """
-  @spec tab() :: parser
-  @spec tab(parser) :: parser
+  @spec tab(previous_parser) :: parser
   defparser tab(%ParserState{status: :ok, column: col, input: <<?\t::utf8,rest::binary>>, results: results} = state) do
     %{state | :column => col + 1, :input => rest, :results => ["\t"|results]}
   end
@@ -256,18 +246,17 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("\\r\\n", newline)
+      ...> Combine.parse("\\r\\n", newline())
       ["\\n"]
-      ...> Combine.parse("H\\r\\n", upper |> newline)
+      ...> Combine.parse("H\\r\\n", upper() |> newline())
       ["H", "\\n"]
   """
-  @spec newline() :: parser
-  @spec newline(parser) :: parser
-  defparser newline(%ParserState{status: :ok, column: col, input: <<?\n::utf8,rest::binary>>, results: results} = state) do
-    %{state | :column => col + 1, :input => rest, :results => ["\n"|results]}
+  @spec newline(previous_parser) :: parser
+  defparser newline(%ParserState{status: :ok, line: line, input: <<?\n::utf8,rest::binary>>, results: results} = state) do
+    %{state | :column => 0, :line => line + 1, :input => rest, :results => ["\n"|results]}
   end
-  defp newline_impl(%ParserState{status: :ok, column: col, input: <<?\r::utf8,?\n::utf8,rest::binary>>, results: results} = state) do
-    %{state | :column => col + 2, :input => rest, :results => ["\n"|results]}
+  defp newline_impl(%ParserState{status: :ok, line: line, input: <<?\r::utf8,?\n::utf8,rest::binary>>, results: results} = state) do
+    %{state | :column => 0, :line => line + 1, :input => rest, :results => ["\n"|results]}
   end
   defp newline_impl(%ParserState{status: :ok, line: line, column: col, input: <<?\r::utf8,c::utf8,_::binary>>} = state) do
     %{state | :status => :error, :error => "Expected CRLF sequence, but found `\\r#{<<c::utf8>>}` at line #{line}, column #{col + 1}."}
@@ -289,13 +278,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("1010", digit)
+      ...> Combine.parse("1010", digit())
       [1]
-      ...> Combine.parse("1010", digit |> digit)
+      ...> Combine.parse("1010", digit() |> digit())
       [1, 0]
   """
-  @spec digit() :: parser
-  @spec digit(parser) :: parser
+  @spec digit(previous_parser) :: parser
   defparser digit(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in @digits do
       digit = case c do
@@ -325,13 +313,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("1010", bin_digit)
+      ...> Combine.parse("1010", bin_digit())
       [1]
-      ...> Combine.parse("1010", bin_digit |> bin_digit)
+      ...> Combine.parse("1010", bin_digit() |> bin_digit())
       [1, 0]
   """
-  @spec bin_digit() :: parser
-  @spec bin_digit(parser) :: parser
+  @spec bin_digit(previous_parser) :: parser
   defparser bin_digit(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in [?0, ?1] do
       val = case c do
@@ -353,13 +340,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("3157", octal_digit)
+      ...> Combine.parse("3157", octal_digit())
       [3]
-      ...> Combine.parse("3157", octal_digit |> octal_digit)
+      ...> Combine.parse("3157", octal_digit() |> octal_digit())
       [3, 1]
   """
-  @spec octal_digit() :: parser
-  @spec octal_digit(parser) :: parser
+  @spec octal_digit(previous_parser) :: parser
   defparser octal_digit(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in ?0..?7 do
       val = case c do
@@ -387,13 +373,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("d3adbeeF", hex_digit)
+      ...> Combine.parse("d3adbeeF", hex_digit())
       ["d"]
-      ...> Combine.parse("d3adbeeF", hex_digit |> hex_digit)
+      ...> Combine.parse("d3adbeeF", hex_digit() |> hex_digit())
       ["d", "3"]
   """
-  @spec hex_digit() :: parser
-  @spec hex_digit(parser) :: parser
+  @spec hex_digit(previous_parser) :: parser
   defparser hex_digit(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in @hexadecimal do
       %{state | :column => col + 1, :input => rest, :results => [<<c::utf8>>|results]}
@@ -411,13 +396,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("d3", alphanumeric)
+      ...> Combine.parse("d3", alphanumeric())
       ["d"]
-      ...> Combine.parse("d3", alphanumeric |> alphanumeric)
+      ...> Combine.parse("d3", alphanumeric() |> alphanumeric())
       ["d", "3"]
   """
-  @spec alphanumeric() :: parser
-  @spec alphanumeric(parser) :: parser
+  @spec alphanumeric(previous_parser) :: parser
   defparser alphanumeric(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>>, results: results} = state)
     when c in @alphanumeric do
       %{state | :column => col + 1, :input => rest, :results => [<<c::utf8>>|results]}
@@ -437,11 +421,10 @@ defmodule Combine.Parsers.Text do
       iex> import #{__MODULE__}
       ...> Combine.parse("Hi Paul", string("Hi"))
       ["Hi"]
-      ...> Combine.parse("Hi Paul", string("Hi") |> space |> string("Paul"))
+      ...> Combine.parse("Hi Paul", string("Hi") |> space() |> string("Paul"))
       ["Hi", " ", "Paul"]
   """
-  @spec string(String.t) :: parser
-  @spec string(parser, String.t) :: parser
+  @spec string(previous_parser, String.t) :: parser
   defparser string(%ParserState{status: :ok, line: line, column: col, input: input, results: results} = state, expected)
     when is_binary(expected) do
       byte_size = :erlang.size(expected)
@@ -460,15 +443,13 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("Hi, Paul", word)
+      ...> Combine.parse("Hi, Paul", word())
       ["Hi"]
-      ...> Combine.parse("Hi Paul", word |> space |> word)
+      ...> Combine.parse("Hi Paul", word() |> space() |> word())
       ["Hi", " ", "Paul"]
   """
-  @spec word() :: parser
-  @spec word(parser) :: parser
-  def word(),       do: word_of(~r/\w+/)
-  def word(parser), do: word_of(parser, ~r/\w+/)
+  @spec word(previous_parser) :: parser
+  def word(parser \\ nil),       do: word_of(parser, ~r/\w+/)
 
   @doc """
   Parses a string where each character matches the provided regular expression.
@@ -480,8 +461,7 @@ defmodule Combine.Parsers.Text do
       ...> Combine.parse("something_with-special:characters!", word_of(valid_chars))
       ["something_with-special:characters!"]
   """
-  @spec word_of(Regex.t) :: parser
-  @spec word_of(parser, Regex.t) :: parser
+  @spec word_of(previous_parser, Regex.t) :: parser
   defparser word_of(%ParserState{status: :ok, line: line, column: col, input: input, results: results} = state, pattern) do
     source = case Regex.source(pattern) do
       <<?^, _::binary>> = source ->
@@ -515,13 +495,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("1234, stuff", integer)
+      ...> Combine.parse("1234, stuff", integer())
       [1234]
-      ...> Combine.parse("stuff, 1234", word |> char(",") |> space |> integer)
+      ...> Combine.parse("stuff, 1234", word() |> char(",") |> space() |> integer())
       ["stuff", ",", " ", 1234]
   """
-  @spec integer() :: parser
-  @spec integer(parser) :: parser
+  @spec integer(previous_parser) :: parser
   defparser integer(%ParserState{status: :ok} = state), do: fixed_integer(-1).(state)
 
   @doc """
@@ -532,11 +511,10 @@ defmodule Combine.Parsers.Text do
       iex> import #{__MODULE__}
       ...> Combine.parse("123, stuff", fixed_integer(3))
       [123]
-      ...> Combine.parse(":1234", char |> fixed_integer(3))
+      ...> Combine.parse(":1234", char() |> fixed_integer(3))
       [":", 123]
   """
-  @spec fixed_integer(-1 | pos_integer) :: parser
-  @spec fixed_integer(parser, -1 | pos_integer) :: parser
+  @spec fixed_integer(previous_parser, -1 | pos_integer) :: parser
   defparser fixed_integer(%ParserState{status: :ok, column: col, input: <<c::utf8,rest::binary>> = input, results: results} = state, size)
     when c in @digits do
       case extract_integer(rest, <<c::utf8>>, size - 1) do
@@ -577,13 +555,12 @@ defmodule Combine.Parsers.Text do
   # Example
 
       iex> import #{__MODULE__}
-      ...> Combine.parse("1234.5, stuff", float)
+      ...> Combine.parse("1234.5, stuff", float())
       [1234.5]
-      ...> Combine.parse("float: 1234.5", word |> char(":") |> space |> float)
+      ...> Combine.parse("float: 1234.5", word() |> char(":") |> space() |> float())
       ["float", ":", " ", 1234.5]
   """
-  @spec float() :: parser
-  @spec float(parser) :: parser
+  @spec float(previous_parser) :: parser
   defparser float(%ParserState{status: :ok, line: line, column: col, input: <<c::utf8,rest::binary>> = input, results: results} = state)
     when c in @digits do
       case extract_float(rest, <<c::utf8>>, false, <<c::utf8>>) do
@@ -594,7 +571,7 @@ defmodule Combine.Parsers.Text do
           %{state | :column => col + float_len, :input => rest, results: [num|results]}
         {:error, {:incomplete_float, extracted}} ->
           extracted_len = String.length(extracted)
-          %{state | :status => :error, :error => "Expected valid float, but was incomplete `#{extracted}`, at line #{line}, column #{col + extracted_len}"}
+          %{state | :status => :error, :error => "Expected valid float, but was incomplete `#{extracted}`, at line #{state.line}, column #{col + extracted_len}"}
       end
   end
   defp float_impl(%ParserState{status: :ok, line: line, column: col, input: <<c::utf8,_::binary>>} = state) do
@@ -606,7 +583,7 @@ defmodule Combine.Parsers.Text do
   defp extract_float(<<>>, acc, extracting_fractional, _) do
     cond do
       extracting_fractional -> {:ok, acc}
-      true -> {:error, {:incomplete_float, acc}}
+      :else                 -> {:error, {:incomplete_float, acc}}
     end
   end
   defp extract_float(<<c::utf8,rest::binary>>, acc, extracting_fractional, _)
@@ -614,7 +591,8 @@ defmodule Combine.Parsers.Text do
       extract_float(rest, <<acc::binary, c::utf8>>, extracting_fractional, <<c::utf8>>)
   end
   defp extract_float(<<?.::utf8,rest::binary>>, acc, false, _), do: extract_float(rest, <<acc::binary, ?.::utf8>>, true, ".")
-  defp extract_float(_, acc, false, <<?.::utf8>>), do: {:error, {:incomplete_float, acc}}
-  defp extract_float(_, acc, _, _), do: {:ok, acc}
+  defp extract_float(_, acc, true, <<?.::utf8>>), do: {:error, {:incomplete_float, acc}}
+  defp extract_float(_, acc, false, _), do: {:error, {:incomplete_float, acc}}
+  defp extract_float(_, acc, true, _), do: {:ok, acc}
 
 end

@@ -23,32 +23,33 @@
 %%% you can process later with `hackney_http:execute/2' when
 %%% `{more, ...}'  is returnned or `hackney_http:execute/1' in other
 %%% cases:
-%%%
-%%% - `{response, http_version(), status(), http_reason(), parser()}':
-%%% when the first line of a response is parsed
-%%% - `{request, http_version(), http_method(), uri(), parser()}':
-%%% when the first line of a request (on servers) is parsed
-%%% - `{more, parser()}': when the parser need more
+%%% <ul>
+%%%  <li>`{response, http_version(), status(), http_reason(), parser()}':
+%%% when the first line of a response is parsed</li>
+%%%  <li>`{request, http_version(), http_method(), uri(), parser()}':
+%%% when the first line of a request (on servers) is parsed</li>
+%%%  <li>`{more, parser()}': when the parser need more
 %%% data. The new data should be passed to `hackney_http:execute/2' with
-%%% the new parser() state received.
-%%% - `{header, {Name :: binary(), Value :: binary()}, parser()}':
+%%% the new parser() state received.</li>
+%%%  <li>`{header, {Name :: binary(), Value :: binary()}, parser()}':
 %%% when an header has been parsed. To continue the parsing you must
-%%% call the given `parser()' with `hackney_http:execute/1'.
-%%% - `{headers_complete, parser()}' : when all headers have been parsed.
+%%% call the given `parser()' with `hackney_http:execute/1'.</li>
+%%%  <li>`{headers_complete, parser()}' : when all headers have been parsed.
 %%% To continue the parsing you must call the given `parser()' state
-%%% with `hackney_http:execute/1'.
-%%% - `{more, parser(), binary()}': on body, when
+%%% with `hackney_http:execute/1'.</li>
+%%%  <li>`{more, parser(), binary()}': on body, when
 %%% the parser need more data. The new data should be passed to
 %%% `hackney_http:execute/2' (with `parser()' ) when received. The binary at the end of the
 %%% tuple correspond to the actual buffer of the parser. It may be used
 %%% for other purpose, like start to parse a new request on pipeline
-%%% connections, for a proxy...
-%%% - `{ok, binary(), parser()}': on body, when a chunk has been
+%%% connections, for a proxy...</li>
+%%%  <li>`{ok, binary(), parser()}': on body, when a chunk has been
 %%% parsed. To continue the parsing you must call
-%%% `hackney_http:execute/1' with the given `parser()'.
-%%% - `{done, binary()}': when the parsing is done. The binary
-%%% given correpond to the non parsed part of the internal buffer.
-%%% - `{error, term{}}': when an error happen
+%%% `hackney_http:execute/1' with the given `parser()'.</li>
+%%%  <li>`{done, binary()}': when the parsing is done. The binary
+%%% given correpond to the non parsed part of the internal buffer.</li>
+%%%  <li>`{error, term{}}': when an error happen</li>
+%%% </ul>
 
 -module(hackney_http).
 
@@ -60,7 +61,7 @@
 -include("hackney_lib.hrl").
 
 
--opaque parser() :: #hparser{}.
+-type parser() :: #hparser{}.
 -export_type([parser/0]).
 
 -type http_version() :: {integer(), integer()}.
@@ -69,19 +70,24 @@
 -type http_method() :: binary().
 -type uri() :: binary().
 -type body_result() :: {more, parser(), binary()}
-    | {ok, binary(), parser()}
-    | {done, binary()}.
+| {ok, binary(), parser()}
+| {done, binary()}
+| done.
+
+-type header_result() :: {headers_complete, parser()}
+| {header, {binary(), binary()}, parser()}.
 
 -type parser_result() ::
-    {response, http_version(), status(), http_reason(), parser()}
-    | {request, http_version(), http_method(), uri(), parser()}
-    | {more, parser()}
-    | body_result()
-    | {error, term()}.
+{response, http_version(), status(), http_reason(), parser()}
+| {request, http_method(), uri(), http_version(), parser()}
+| {more, parser()}
+| header_result()
+| body_result()
+| {error, term()}.
 
 -type parser_option() :: request | response | auto
-    | {max_empty_lines, integer()}
-    | {max_line_length, integer()}.
+| {max_empty_lines, integer()}
+| {max_line_length, integer()}.
 
 -type parser_options() :: [parser_option()].
 
@@ -90,438 +96,445 @@
 %% binary is a response or a request.
 -spec parser() -> parser().
 parser() ->
-    parser([]).
+  parser([]).
 
 %% @doc create a new HTTP parser with options. By default the type of
 %% parsed binary will be detected.
 %%
 %% Available options:
 %% <ul>
-%%   <li>`auto' : autodetect if the binary parsed is a response or a
-%%   request (default).</li>
-%%   <li>`response': set the parser to parse a response</li>
-%%   <li>`request': set the parser to parse a request (server)</li>
-%%   <li>`{max_line_lenght, Max}': set the maximum size of a line parsed
-%%   before we give up.</li>
-%%   <li>`{max_lines_empty, Max}': the maximum number of empty line we
-%%   accept before the first line happen</li>
+%%  <li>`auto' : autodetect if the binary parsed is a response or a
+%%  request (default).</li>
+%%  <li>`response': set the parser to parse a response</li>
+%%  <li>`request': set the parser to parse a request (server)</li>
+%%  <li>`{max_line_lenght, Max}': set the maximum size of a line parsed
+%%  before we give up.</li>
+%%  <li>`{max_lines_empty, Max}': the maximum number of empty line we
+%%  accept before the first line happen</li>
 %% </ul>
 -spec parser(parser_options()) -> parser().
 parser(Options) ->
-    parse_options(Options, #hparser{}).
+  parse_options(Options, #hparser{}).
 
 %% @doc retrieve a parser property.
 %% Properties are:
-%%  - `buffer': internal buffer of the parser (non parsed)
-%%  - `state': the current state (on_status, on_header, on_body, done)
-%%  - `version': HTTP version
-%%  - `content_length': content length header if any
-%%  - `transfer_encoding': transfer encoding header if any
-%%  - `content_type': content type header if any
-%%  - `location': location header if any
-%%  - `connection': connection header if any.
+%% <ul>
+%%  <li>`buffer': internal buffer of the parser (non parsed)</li>
+%%  <li>`state': the current state (on_status, on_header, on_body, done)</li>
+%%  <li>`version': HTTP version</li>
+%%  <li>`content_length': content length header if any</li>
+%%  <li>`transfer_encoding': transfer encoding header if any</li>
+%%  <li>`content_type': content type header if any</li>
+%%  <li>`location': location header if any</li>
+%%  <li>`connection': connection header if any.</li>
+%% </ul>
 -spec get(parser(), atom() | [atom()]) -> any().
 get(Parser, Props) when is_list(Props) ->
-    [get_property(P, Parser) || P <- Props];
+  [get_property(P, Parser) || P <- Props];
 get(Parser, Prop) ->
-    get_property(Prop, Parser).
+  get_property(Prop, Parser).
 
 %% @doc Execute the parser with the current buffer.
 -spec execute(#hparser{}) -> parser_result().
 execute(St) ->
-    execute(St, <<>>).
+  execute(St, <<>>).
 
 %% @doc Execute the parser with the new buffer
 -spec execute(#hparser{}, binary()) -> parser_result().
 execute(#hparser{state=Status, buffer=Buffer}=St, Bin) ->
-    %% update the state with the new buffer
-    NBuffer = << Buffer/binary, Bin/binary >>,
-    St1 = St#hparser{buffer=NBuffer},
+  %% update the state with the new buffer
+  NBuffer = << Buffer/binary, Bin/binary >>,
+  St1 = St#hparser{buffer=NBuffer},
 
-    %% process the right state.
-    case Status of
-        done -> done;
-        on_first_line -> parse_first_line(NBuffer, St1, 0);
-        on_header -> parse_headers(St1);
-        on_body -> parse_body(St1)
-    end.
+  %% process the right state.
+  case Status of
+    done -> done;
+    on_first_line -> parse_first_line(NBuffer, St1, 0);
+    on_header -> parse_headers(St1);
+    on_body -> parse_body(St1);
+    on_trailers -> parse_trailers(St1)
+  end.
 
 %% Empty lines must be using \r\n.
 parse_first_line(<< $\n, _/binary >>, _St, _) ->
-    {error, badarg};
+  {error, badarg};
 %% We limit the length of the first-line to MaxLength to avoid endlessly
 %% reading from the socket and eventually crashing.
 parse_first_line(Buffer, St=#hparser{type=Type,
-                                     max_line_length=MaxLength,
-                                     max_empty_lines=MaxEmpty}, Empty) ->
-    case match_eol(Buffer, 0) of
-        nomatch when byte_size(Buffer) > MaxLength ->
-            {error, line_too_long};
-        nomatch ->
-            {more, St#hparser{empty_lines=Empty}};
-        1 when Empty =:= MaxEmpty ->
-            {error, bad_request};
-        1 ->
-            << _:16, Rest/binary >> = Buffer,
-            parse_first_line(Rest, St, Empty + 1);
-        _ when Type =:= auto ->
-            case parse_request_line(St) of
-                {error, bad_request} ->
-                    case parse_response_line(St) of
-                        {error, bad_request} = Error ->
-                            Error;
-                        OK ->
-                            OK
-                    end;
-                OK ->
-                    OK
-            end;
-        _ when Type =:= response ->
-            parse_response_line(St);
-        _ when Type =:= request ->
-            parse_request_line(St)
-    end.
+  max_line_length=MaxLength,
+  max_empty_lines=MaxEmpty}, Empty) ->
+  case match_eol(Buffer, 0) of
+    nomatch when byte_size(Buffer) > MaxLength ->
+      {error, line_too_long};
+    nomatch ->
+      {more, St#hparser{empty_lines=Empty}};
+    1 when Empty =:= MaxEmpty ->
+      {error, bad_request};
+    1 ->
+      << _:16, Rest/binary >> = Buffer,
+      parse_first_line(Rest, St#hparser{buffer=Rest}, Empty + 1);
+    _ when Type =:= auto ->
+      case parse_request_line(St) of
+        {request, _Method, _URI, _Version, _NState} = Req -> Req;
+        {error, bad_request} -> parse_response_line(St)
+      end;
+    _ when Type =:= response ->
+      parse_response_line(St);
+    _ when Type =:= request ->
+      parse_request_line(St)
+  end.
 
 match_eol(<< $\n, _/bits >>, N) ->
-    N;
+  N;
 match_eol(<< _, Rest/bits >>, N) ->
-    match_eol(Rest, N + 1);
+  match_eol(Rest, N + 1);
 match_eol(_, _) ->
-    nomatch.
+  nomatch.
 
 %% @doc parse status
 parse_response_line(#hparser{buffer=Buf}=St) ->
-    case binary:split(Buf, <<"\r\n">>) of
-        [Line, Rest] ->
-            parse_response_version(Line, St#hparser{buffer=Rest});
-        _ ->
-            {error, bad_request}
-    end.
+  case binary:split(Buf, <<"\r\n">>) of
+    [Line, Rest] ->
+      parse_response_version(Line, St#hparser{buffer=Rest});
+    _ ->
+      {error, bad_request}
+  end.
 
 
 parse_response_version(<< "HTTP/", High, ".", Low, $\s, Rest/binary >>, St)
-        when High >= $0, High =< $9, Low >= $0, Low =< $9 ->
-    Version = { High -$0, Low - $0},
-    parse_status(Rest, St, Version, <<>>);
+  when High >= $0, High =< $9, Low >= $0, Low =< $9 ->
+  Version = { High -$0, Low - $0},
+  parse_status(Rest, St, Version, <<>>);
 parse_response_version(_, _) ->
-     {error, bad_request}.
+  {error, bad_request}.
 
 parse_status(<<>>, St, Version, Acc) ->
-    parse_reason(<<>>, St, Version, Acc);
+  parse_reason(<<>>, St, Version, Acc);
 parse_status(<< C, Rest/bits >>, St, Version, Acc) ->
-    case C of
-        $\r ->  {error, bad_request};
-        $\s -> parse_reason(Rest, St, Version, Acc);
-        _ -> parse_status(Rest, St, Version, << Acc/binary, C >>)
-    end.
+  case C of
+    $\r ->  {error, bad_request};
+    $\s -> parse_reason(Rest, St, Version, Acc);
+    _ -> parse_status(Rest, St, Version, << Acc/binary, C >>)
+  end.
 
 parse_reason(Reason, St, Version, StatusCode) ->
-    StatusInt = list_to_integer(binary_to_list(StatusCode)),
+  StatusInt = list_to_integer(binary_to_list(StatusCode)),
 
-    NState = St#hparser{type=response,
-                        version=Version,
-                        state=on_header,
-                        partial_headers=[]},
-    {response, Version, StatusInt, Reason, NState}.
+  NState = St#hparser{type=response,
+    version=Version,
+    state=on_header,
+    partial_headers=[]},
+  {response, Version, StatusInt, Reason, NState}.
 
 
 parse_request_line(#hparser{buffer=Buf}=St) ->
-    parse_method(Buf, St, <<>>).
+  parse_method(Buf, St, <<>>).
 
 parse_method(<< C, Rest/bits >>, St, Acc) ->
-    case C of
-        $\r ->  {error, bad_request};
-        $\s -> parse_uri(Rest, St, Acc);
-        _ -> parse_method(Rest, St, << Acc/binary, C >>)
-    end.
+  case C of
+    $\r ->  {error, bad_request};
+    $\s -> parse_uri(Rest, St, Acc);
+    _ -> parse_method(Rest, St, << Acc/binary, C >>)
+  end.
 
 parse_uri(<< $\r, _/bits >>, _St, _) ->
-    {error, bad_request};
+  {error, bad_request};
 parse_uri(<< "* ", Rest/bits >>, St, Method) ->
-    parse_version(Rest, St, Method, <<"*">>);
+  parse_version(Rest, St, Method, <<"*">>);
 parse_uri(Buffer, St, Method) ->
-    parse_uri_path(Buffer, St, Method, <<>>).
+  parse_uri_path(Buffer, St, Method, <<>>).
 
 parse_uri_path(<< C, Rest/bits >>, St, Method, Acc) ->
-    case C of
-        $\r -> {error, bad_request};
-        $\s -> parse_version(Rest, St, Method, Acc);
-        _ -> parse_uri_path(Rest, St, Method, << Acc/binary, C >>)
-    end.
+  case C of
+    $\r -> {error, bad_request};
+    $\s -> parse_version(Rest, St, Method, Acc);
+    _ -> parse_uri_path(Rest, St, Method, << Acc/binary, C >>)
+  end.
 
 parse_version(<< "HTTP/", High, ".", Low, $\r , $\n, Rest/binary >>, St, Method, URI)
-        when High >= $0, High =< $9, Low >= $0, Low =< $9 ->
-    Version = { High -$0, Low - $0},
+  when High >= $0, High =< $9, Low >= $0, Low =< $9 ->
+  Version = { High -$0, Low - $0},
 
-    NState = St#hparser{type=request,
-                        version=Version,
-                        method=Method,
-                        state=on_header,
-                        buffer=Rest,
-                        partial_headers=[]},
-    {request, Method, URI, Version, NState};
+  NState = St#hparser{type=request,
+    version=Version,
+    method=Method,
+    state=on_header,
+    buffer=Rest,
+    partial_headers=[]},
+  {request, Method, URI, Version, NState};
 parse_version(_, _, _, _) ->
-     {error, bad_request}.
+  {error, bad_request}.
 
 %% @doc fetch all headers
 parse_headers(#hparser{}=St) ->
-    case parse_header(St) of
-        {more, St2} ->
-            {more, St2};
-        {headers_complete, St2} ->
-            {headers_complete, St2};
-        {header, KV, St2} ->
-            {header, KV, St2}
-    end.
+  parse_header(St).
 
 
 parse_header(#hparser{buffer=Buf}=St) ->
-    case binary:split(Buf, <<"\r\n">>) of
-        [<<>>, Rest] ->
-            {headers_complete, St#hparser{buffer=Rest,
-                                          state=on_body}};
-        [<< " ", Line/binary >>, Rest] ->
-            NewBuf = iolist_to_binary([Line, Rest]),
-            parse_header(St#hparser{buffer=NewBuf});
-        [<< "\t", Line/binary >>, Rest] ->
-            NewBuf = iolist_to_binary([Line, Rest]),
-            parse_header(St#hparser{buffer=NewBuf});
-        [Line, Rest]->
-            parse_header(Line, St#hparser{buffer=Rest});
-        [Buf] ->
-            {more, St}
-    end.
+  case binary:split(Buf, <<"\r\n">>) of
+    [<<>>, Rest] ->
+      {headers_complete, St#hparser{buffer=Rest,
+        state=on_body}};
+    [Line, << " ", Rest/binary >> ] ->
+      NewBuf = iolist_to_binary([Line, " ", Rest]),
+      parse_header(St#hparser{buffer=NewBuf});
+    [Line, << "\t", Rest/binary >> ] ->
+      NewBuf = iolist_to_binary([Line, " ", Rest]),
+      parse_header(St#hparser{buffer=NewBuf});
+    [Line, Rest]->
+      parse_header(Line, St#hparser{buffer=Rest});
+    [Buf] ->
+      {more, St}
+  end.
 
 
 parse_header(Line, St) ->
-    [Key, Value] = case binary:split(Line, <<":">>, [trim]) of
-        [K] -> [K, <<>>];
-        [K, V] -> [K, parse_header_value(V)]
-    end,
-    St1 = case hackney_bstr:to_lower(hackney_bstr:trim(Key)) of
-        <<"content-length">> ->
-            CLen = list_to_integer(binary_to_list(hackney_bstr:trim(Value))),
-            St#hparser{clen=CLen};
-        <<"transfer-encoding">> ->
+  [Key, Value] = case binary:split(Line, <<":">>, [trim]) of
+                   [K] -> [K, <<>>];
+                   [K, V] -> [K, parse_header_value(V)]
+                 end,
+  St1 = case hackney_bstr:to_lower(hackney_bstr:trim(Key)) of
+          <<"content-length">> ->
+            case hackney_util:to_int(Value) of
+              {ok, CLen} -> St#hparser{clen=CLen};
+              false -> St#hparser{clen=bad_int}
+            end;
+          <<"transfer-encoding">> ->
             TE = hackney_bstr:to_lower(hackney_bstr:trim(Value)),
             St#hparser{te=TE};
-        <<"connection">> ->
+          <<"connection">> ->
             Connection = hackney_bstr:to_lower(hackney_bstr:trim(Value)),
             St#hparser{connection=Connection};
-        <<"content-type">> ->
+          <<"content-type">> ->
             CType=hackney_bstr:to_lower(hackney_bstr:trim(Value)),
             St#hparser{ctype=CType};
-        <<"location">> ->
+          <<"location">> ->
             Location = hackney_bstr:trim(Value),
             St#hparser{location=Location};
-        _ ->
-           St
-    end,
-    {header, {Key, Value}, St1}.
+          _ ->
+            St
+        end,
+  {header, {Key, Value}, St1}.
 
-parse_header_value(<< $\s, Rest/binary >>) ->
-    parse_header_value(Rest);
-parse_header_value(<< $\t, Rest/binary >>) ->
-    parse_header_value(Rest);
 parse_header_value(H) ->
-    H.
+  hackney_bstr:trim(H).
 
+parse_trailers(St) ->
+  case parse_trailers(St, []) of
+    {ok, _Trailers, #hparser{buffer=Rest1}} ->
+      {done, Rest1};
+    {more, St2} ->
+      {more, St2}
+  end.
 
 parse_trailers(St, Acc) ->
-    case parse_headers(St) of
-        {header, Header, St2} -> parse_trailers(St2, [Header | Acc]);
-        {headers_complete, St2} -> {ok, lists:reverse(Acc), St2};
-        _ -> error
-    end.
+  case parse_headers(St) of
+    {header, Header, St2} -> parse_trailers(St2, [Header | Acc]);
+    {headers_complete, St2} -> {ok, lists:reverse(Acc), St2};
+    {more, St2} -> {more, St2}
+  end.
 
-parse_body(St=#hparser{body_state=waiting, te=TE, clen=Length,
-                       method=Method, buffer=Buffer}) ->
-	case TE of
-		<<"chunked">> ->
-			parse_body(St#hparser{body_state=
-				{stream, fun te_chunked/2, {0, 0}, fun ce_identity/1}});
-		_ when Length =:= 0 orelse Method =:= <<"HEAD">> ->
-            {done, Buffer};
-        _ ->
-		    parse_body(St#hparser{body_state=
-						{stream, fun te_identity/2, {0, Length},
-						 fun ce_identity/1}})
-	end;
+parse_body(#hparser{body_state=waiting, method= <<"HEAD">>, buffer=Buffer}) ->
+ {done, Buffer};
+parse_body(St=#hparser{body_state=waiting, te=TE, clen=Length, buffer=Buffer}) ->
+  case {TE, Length} of
+    {<<"chunked">>, _} ->
+      parse_body(St#hparser{body_state=
+      {stream, fun te_chunked/2, {0, 0}, fun ce_identity/1}});
+    {_, 0} ->
+      {done, Buffer};
+    {_, bad_int} ->
+      {done, Buffer};
+    {_, _} ->
+      parse_body(
+        St#hparser{body_state={stream, fun te_identity/2, {0, Length}, fun ce_identity/1}}
+       )
+  end;
 parse_body(#hparser{body_state=done, buffer=Buffer}) ->
-	{done, Buffer};
-parse_body(St=#hparser{buffer=Buffer, body_state={stream, _, _, _}})
-		when byte_size(Buffer) > 0 ->
-	transfer_decode(Buffer, St#hparser{buffer= <<>>});
+  {done, Buffer};
+parse_body(St=#hparser{buffer=Buffer, body_state={stream, _, _, _}}) when byte_size(Buffer) > 0 ->
+  transfer_decode(Buffer, St#hparser{buffer= <<>>});
 parse_body(St) ->
-    {more, St, <<>>}.
+  {more, St, <<>>}.
 
 
 -spec transfer_decode(binary(), #hparser{})
-                     -> {ok, binary(), #hparser{}} | {error, atom()}.
+    -> {ok, binary(), #hparser{}} | {done, binary()} | {error, atom()}.
 transfer_decode(Data, St=#hparser{
-                body_state={stream, TransferDecode,
-                                    TransferState, ContentDecode},
-                buffer=Buf}) ->
-    case TransferDecode(Data, TransferState) of
-        {ok, Data2, TransferState2} ->
-            content_decode(ContentDecode, Data2,
-                           St#hparser{body_state= {stream,
-                                                   TransferDecode,
-                                                   TransferState2,
-                                                   ContentDecode}});
-        {ok, Data2, Rest, TransferState2} ->
-            content_decode(ContentDecode, Data2,
-                           St#hparser{buffer=Rest,
-                                      body_state={stream,
-                                                  TransferDecode,
-                                                  TransferState2,
-                                                  ContentDecode}});
-        {chunk_done, Rest} ->
-            case parse_trailers(St#hparser{buffer=Rest}, []) of
-                {ok, _Trailers, #hparser{buffer=Rest1}} ->
-                    {done, Rest1};
-                _ ->
-                    {done, Rest}
-            end;
-        {chunk_ok, Chunk, Rest} ->
-            {ok, Chunk, St#hparser{buffer=Rest}};
-        more ->
-            {more, St#hparser{buffer=Data}, Buf};
-        {done, Rest} ->
-            {done, Rest};
-        {done, Data2, _Rest} ->
-            content_decode(ContentDecode, Data2,
-                           St#hparser{body_state=done});
-        {done, Data2, _Length, Rest} ->
-            content_decode(ContentDecode, Data2, St#hparser{buffer=Rest,
-                                                            body_state=done});
-        done ->
-            {done, <<>>};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+  body_state={stream, TransferDecode,
+    TransferState, ContentDecode},
+  buffer=Buf}) ->
+  case TransferDecode(Data, TransferState) of
+    {ok, Data2, TransferState2} ->
+      content_decode(ContentDecode, Data2,
+        St#hparser{body_state= {stream,
+          TransferDecode,
+          TransferState2,
+          ContentDecode}});
+    {ok, Data2, Rest, TransferState2} ->
+      content_decode(ContentDecode, Data2,
+        St#hparser{buffer=Rest,
+          body_state={stream,
+            TransferDecode,
+            TransferState2,
+            ContentDecode}});
+    {chunk_done, Rest} ->
+      parse_trailers(St#hparser{buffer=Rest, state=on_trailers, body_state=done});
+    {chunk_ok, Chunk, Rest} ->
+      {ok, Chunk, St#hparser{buffer=Rest}};
+    more ->
+      {more, St#hparser{buffer=Data}, Buf};
+    {done, Rest} ->
+      {done, Rest};
+    {done, Data2, _Rest} ->
+      content_decode(ContentDecode, Data2,
+        St#hparser{body_state=done});
+    {done, Data2, _Length, Rest} ->
+      content_decode(ContentDecode, Data2, St#hparser{buffer=Rest,
+        body_state=done});
+    done ->
+      {done, <<>>};
+    {error, Reason} ->
+      {error, Reason}
+  end.
 
 
 -spec content_decode(fun(), binary(), #hparser{})
-	-> {ok, binary(), #hparser{}} | {error, atom()}.
+    -> {ok, binary(), #hparser{}} | {error, atom()}.
 content_decode(ContentDecode, Data, St) ->
-	case ContentDecode(Data) of
-        {ok, Data2} -> {ok, Data2, St};
-		{error, Reason} -> {error, Reason}
-	end.
+  case ContentDecode(Data) of
+    {ok, Data2} -> {ok, Data2, St};
+    {error, Reason} -> {error, Reason}
+  end.
 
 
 %% @doc Decode a stream of chunks.
 -spec te_chunked(binary(), any())
     -> more | {ok, binary(), {non_neg_integer(), non_neg_integer()}}
-    | {ok, binary(), binary(),  {non_neg_integer(), non_neg_integer()}}
-    | {done, non_neg_integer(), binary()} | {error, badarg}.
+  | {ok, binary(), binary(),  {non_neg_integer(), non_neg_integer()}}
+  | {done, non_neg_integer(), binary()} | {error, badarg}.
 te_chunked(<<>>, _) ->
-    done;
+  done;
 te_chunked(Data, _) ->
-    case read_size(Data) of
-        {ok, 0, Rest} ->
-            {chunk_done, Rest};
-        {ok, Size, Rest} ->
-            case read_chunk(Rest, Size) of
-                {ok, Chunk, Rest1} ->
-                    {chunk_ok, Chunk, Rest1};
-                eof ->
-                    more
-            end;
+  case read_size(Data) of
+    {ok, 0, Rest} ->
+      {chunk_done, Rest};
+    {ok, Size, Rest} ->
+      case read_chunk(Rest, Size) of
+        {ok, Chunk, Rest1} ->
+          {chunk_ok, Chunk, Rest1};
         eof ->
-            more
-    end.
+          more
+      end;
+    eof ->
+      more
+  end.
 
 %% @doc Decode an identity stream.
 -spec te_identity(binary(), {non_neg_integer(), non_neg_integer()})
-	-> {ok, binary(), {non_neg_integer(), non_neg_integer()}}
-	| {done, binary(), non_neg_integer(), binary()}.
+    -> {ok, binary(), {non_neg_integer(), non_neg_integer()}}
+  | {done, binary(), non_neg_integer(), binary()}.
 te_identity(Data, {Streamed, Total})
-        when (Streamed + byte_size(Data)) < Total ->
-	{ok, Data, {Streamed + byte_size(Data), Total}};
+  when (Streamed + byte_size(Data)) < Total ->
+  {ok, Data, {Streamed + byte_size(Data), Total}};
 te_identity(Data, {Streamed, Total}) ->
-	Size = Total - Streamed,
-	<< Data2:Size/binary, Rest/binary >> = Data,
-	{done, Data2, Total, Rest}.
+  Size = Total - Streamed,
+  << Data2:Size/binary, Rest/binary >> = Data,
+  {done, Data2, Total, Rest}.
 
 %% @doc Decode an identity content.
 -spec ce_identity(binary()) -> {ok, binary()}.
 ce_identity(Data) ->
-	{ok, Data}.
+  {ok, Data}.
 
 read_size(Data) ->
-    case read_size(Data, [], true) of
-        {ok, Line, Rest} ->
-            case io_lib:fread("~16u", Line) of
-                {ok, [Size], []} ->
-                    {ok, Size, Rest};
-                _ ->
-                    {error, {poorly_formatted_size, Line}}
-            end;
-        Err ->
-            Err
-    end.
+  case read_size(Data, [], true) of
+    {ok, Line, Rest} ->
+      case io_lib:fread("~16u", Line) of
+        {ok, [Size], _} ->
+          {ok, Size, Rest};
+        _ ->
+          {error, {poorly_formatted_size, Line}}
+      end;
+    Err ->
+      Err
+  end.
 
 read_size(<<>>, _, _) ->
-    eof;
+  eof;
 
 read_size(<<"\r\n", Rest/binary>>, Acc, _) ->
-    {ok, lists:reverse(Acc), Rest};
+  {ok, lists:reverse(Acc), Rest};
 
 read_size(<<$;, Rest/binary>>, Acc, _) ->
-    read_size(Rest, Acc, false);
+  read_size(Rest, Acc, false);
+
+read_size(<<$\s, Rest/binary>>, Acc, _) ->
+  read_size(Rest, Acc, false);
 
 read_size(<<C, Rest/binary>>, Acc, AddToAcc) ->
-    case AddToAcc of
-        true ->
-            read_size(Rest, [C|Acc], AddToAcc);
-        false ->
-            read_size(Rest, Acc, AddToAcc)
-    end.
+  case AddToAcc of
+    true ->
+      read_size(Rest, [C|Acc], AddToAcc);
+    false ->
+      read_size(Rest, Acc, AddToAcc)
+  end.
 
 read_chunk(Data, Size) ->
-    case Data of
-        <<Chunk:Size/binary, "\r\n", Rest/binary>> ->
-            {ok, Chunk, Rest};
-        <<_Chunk:Size/binary, Rest/binary>> when byte_size(Rest) >= 2 ->
-            {error, poorly_formatted_chunked_size};
-        _ ->
-            eof
-    end.
+  case Data of
+    <<Chunk:Size/binary, "\r\n", Rest/binary>> ->
+      {ok, Chunk, Rest};
+    <<_Chunk:Size/binary, Rest/binary>> when byte_size(Rest) >= 2 ->
+      {error, poorly_formatted_chunked_size};
+    _ ->
+      eof
+  end.
 
 %% @private
 
 parse_options([], St) ->
-    St;
+  St;
 parse_options([auto | Rest], St) ->
-    parse_options(Rest, St#hparser{type=auto});
+  parse_options(Rest, St#hparser{type=auto});
 parse_options([request | Rest], St) ->
-    parse_options(Rest, St#hparser{type=request});
+  parse_options(Rest, St#hparser{type=request});
 parse_options([response | Rest], St) ->
-    parse_options(Rest, St#hparser{type=response});
+  parse_options(Rest, St#hparser{type=response});
 parse_options([{max_line_length, MaxLength} | Rest], St) ->
-    parse_options(Rest, St#hparser{max_line_length=MaxLength});
+  parse_options(Rest, St#hparser{max_line_length=MaxLength});
 parse_options([{max_empty_lines, MaxEmptyLines} | Rest], St) ->
-    parse_options(Rest, St#hparser{max_empty_lines=MaxEmptyLines});
+  parse_options(Rest, St#hparser{max_empty_lines=MaxEmptyLines});
 parse_options([_ | Rest], St) ->
-    parse_options(Rest, St).
+  parse_options(Rest, St).
 
 get_property(buffer, #hparser{buffer=Buffer}) ->
-    Buffer;
+  Buffer;
 get_property(state, #hparser{state=State}) ->
-    State;
+  State;
 get_property(version, #hparser{version=Version}) ->
-    Version;
+  Version;
 get_property(method, #hparser{method=Method}) ->
-    Method;
+  Method;
 get_property(transfer_encoding, #hparser{te=TE}) ->
-    TE;
+  TE;
 get_property(content_length, #hparser{clen=CLen}) ->
-    CLen;
+  CLen;
 get_property(connection, #hparser{connection=Connection}) ->
-    Connection;
+  Connection;
 get_property(content_type, #hparser{ctype=CType}) ->
-    CType;
+  CType;
 get_property(location, #hparser{location=Location}) ->
-    Location.
+  Location.
+
+%%% Private Tests
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+parse_response_header_with_trailing_whitespace_test() ->
+  Response = <<"Content-Length: 27515  ">>,
+  Parser1 = parser([response]),
+  {header, {<<"Content-Length">>, Length}, _} = parse_header(Response, Parser1),
+  ?assertEqual(<<"27515">>, Length).
+
+-endif.

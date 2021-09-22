@@ -8,7 +8,7 @@ Tzdata. The [timezone database](https://www.iana.org/time-zones) in Elixir.
 
 Extracted from the [Calendar](https://github.com/lau/calendar) library.
 
-As of version 0.5.4 the tz release 2015g
+As of version 0.5.20 the tz release 2019a
 is included in the package.
 
 When a new release is out, it will be automatically downloaded.
@@ -17,7 +17,7 @@ The tz release version in use can be verified with the following function:
 
 ```elixir
 iex> Tzdata.tzdata_version
-"2015f"
+"2018e"
 ```
 
 ## Getting started
@@ -27,7 +27,7 @@ or directly: it is available on hex as `tzdata`.
 
 ```elixir
 defp deps do
-  [  {:tzdata, "~> 0.5.6"},  ]
+  [  {:tzdata, "~> 0.5.20"},  ]
 end
 ```
 
@@ -45,17 +45,19 @@ the applications list in your mix.exs file. An example:
 
 The library uses a file directory to store data. By default this directory
 is `priv`. In some cases you might want to use a different directory. For
-instance when using releases.  If so create the directory, make sure Elixir
-can read and write to it. Then use elixir config files like this to tell
-Tzdata to use that directory:
+instance when using releases this is recommended. If so, create the directory and
+make sure Elixir can read and write to it. Then use elixir config files like this
+to tell Tzdata to use that directory:
 
 ```elixir
 config :tzdata, :data_dir, "/etc/elixir_tzdata_data"
 ```
 
-You can choose to add the `release_ets` directory from `priv` to that directory
+Add the `release_ets` directory from `priv` to that directory
 containing the `20xxx.ets` file that ships with this library.
-If not, Tzdata will try to download data from iana.org at startup.
+
+For instance with this config: `config :tzdata, :data_dir, "/etc/elixir_tzdata_data"`
+an `.ets` file such as `/etc/elixir_tzdata_data/release_ets/2017b.ets` should be present.
 
 ## Automatic data updates
 
@@ -68,6 +70,11 @@ This feature can be disabled with the following configuration:
 config :tzdata, :autoupdate, :disabled
 ```
 
+If the autoupdate setting is set to disabled, one has to manually put updated .ets files
+in the release_ets sub-dir of the "data_dir" (see the "Data directory and releases" section above).
+When IANA releases new versions of the time zone data, this Tzdata library can be used to generate
+a new .ets file containing the new data.
+
 ## Changes from 0.1.x
 
 The 0.5.1+ versions uses ETS tables and automatically polls the IANA
@@ -77,6 +84,11 @@ is available, it is automatically downloaded and used.
 For use with [Calendar](https://github.com/lau/calendar) you can still
 specify tzdata ~> 0.1.7 in your mix.exs file in case you experience problems
 using version ~> 0.5.2.
+
+
+## Hackney dependency and security
+
+Tzdata depends on Hackney in order to do HTTPS requests to get new updates. This is done because Erlang's built in HTTP client `httpc` does not verify SSL certificates when doing HTTPS requests. Hackney verifies the certificate of IANA when getting new tzdata releases from IANA.
 
 ## Documentation
 

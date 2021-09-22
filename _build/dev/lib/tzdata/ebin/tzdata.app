@@ -1,5 +1,6 @@
 {application,tzdata,
-             [{description,"Tzdata is a parser and library for the tz database.\n"},
+             [{applications,[kernel,stdlib,elixir,hackney,logger]},
+              {description,"Tzdata is a parser and library for the tz database.\n"},
               {modules,['Elixir.Tzdata','Elixir.Tzdata.App',
                         'Elixir.Tzdata.BasicDataMap',
                         'Elixir.Tzdata.DataBuilder',
@@ -13,7 +14,6 @@
                         'Elixir.Tzdata.TableData','Elixir.Tzdata.TableParser',
                         'Elixir.Tzdata.Util']},
               {registered,[]},
-              {vsn,"0.5.6"},
-              {applications,[kernel,stdlib,elixir,hackney,logger]},
+              {vsn,"0.5.22"},
               {env,[{autoupdate,enabled},{data_dir,nil}]},
               {mod,{'Elixir.Tzdata.App',[]}}]}.

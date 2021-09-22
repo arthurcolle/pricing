@@ -1,8 +1,8 @@
 {application, ssl_verify_fun,
  [
-  {description, ""},
-  {vsn, "1.1.0"},
-  {modules, [ssl_verify_hostname, ssl_verify_fingerprint]},
+  {description, "SSL verification library"},
+  {vsn, "1.1.6"},
+  {modules, []},
   {registered, []},
   {applications, [
                   kernel,

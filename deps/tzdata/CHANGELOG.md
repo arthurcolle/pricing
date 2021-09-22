@@ -1,5 +1,105 @@
 # Changelog for Tzdata
 
+## [0.5.22] - 2019-10-17
+### Fixed
+
+- Avoid creating atoms for non-existing time zone names.
+
+## [0.5.21] - 2019-07-01
+### Fixed
+
+- Fixed: could not process 2019b release. Error related to `first_matching_weekday_in_month(1932, 4, 7, [])`.
+
+## [0.5.20] - 2019-03-27
+### Fixed
+
+- tz release 2019a causing update errors due to typo in tz data. Fixed by reading version differently.
+
+### Changes
+
+- tz release that ships with Tzdata is now 2019a instead of 2018e
+
+## [0.5.19] - 2018-09-93
+### Fixed
+- Europe/Dublin zone was incorrect since 0.5.17 due to PeriodBuilder
+
+### Changes
+- Reverted PeriodBuilder to avoid problem with Europe/Dublin
+
+## [0.5.18] - 2018-08-21
+### Fixed
+- Fake leap second at 1971-12-31 23:59:60 removed
+
+## [0.5.17] - 2018-06-18
+### Changes
+- New PeriodBuilder implementation (Paul Swartz)
+- tz release that ships with Tzdata is now 2018e instead of 2017b
+
+## [0.5.16] - 2018-01-18
+### Fixed
+- Fix could not load 2018a release by removing obsolete reference to pacificnew file. (Johannes Weißl)
+
+## [0.5.15] - 2018-01-07
+### Fixed
+- If no release file is present at a custom data dir location, copy the .ets file that ships with Tzdata
+  to the custom data dir location. Avoids crashes when no .ets files are present at startup.
+
+## [0.5.14] - 2017-11-22
+### Fixed
+- Follow redirects when downloading from IANA.
+  Use
+  https://data.iana.org/time-zones/tzdata-latest.tar.gz instead of
+  https://www.iana.org/time-zones/repository/tzdata-latest.tar.gz
+
+## [0.5.13] - 2017-11-12
+### Fixed
+- Handle varying Last-Modified headers from IANA.org for same relase. For avoiding these errors:
+
+      Elixir.ArgumentError: argument error
+      Module "ets", in :ets.new/2
+      File "lib/tzdata/data_builder.ex", line 11, in Tzdata.DataBuilder.load_and_save_table/0
+
+## [0.5.12] - 2017-04-16
+### Changed
+- Ships with tz data version 2017b instead of 2016c
+- When checking for updated tz data, use Last Modified header
+
+### Fixed
+- Fix Elixir 1.5 warnings (Gal Tsubery)
+- Fix issue with missing directories (Fabien Henon)
+
+## [0.5.11] - 2017-03-07
+### Changed
+- For auto update use GET to find the file size if the headers do not have a Content-Length
+
+## [0.5.10] - 2016-12-24
+### Fixed
+
+- Avoid handle_info errors in Elixir 1.4.0-rc.1 by using send_after and handle_info instead of Task in ReleaseUpdater. (Josh Bodah)
+
+## [0.5.9] - 2016-08-12
+### Changed
+
+- Period building extended by 2 years and a use of a hard coded cut off time for handling far future datetimes changed to be based on compile time.
+
+### Fixed
+
+- Supress :random deprecated warning. We want to preserve compatability with older versions of Elixir and Erlang.
+
+## [0.5.8] - 2016-06-05
+### Changed
+
+- Improve error handling for malformated contents of the "latest_remote_poll.txt" file
+
+## [0.5.7] - 2016-03-23
+### Changed
+
+- Ship with tz data version 2016c
+
+### Fixed
+
+- Get rid of Elixir warnings in Elixir 1.3.0-dev
+
 ## [0.5.6] - 2015-12-23
 ### Fixed
 - Get rid of Elixir warnings

@@ -1,5 +1,6 @@
 {application,timex,
-             [{description,"A date/time library for Elixir"},
+             [{applications,[kernel,stdlib,elixir,logger,tzdata]},
+              {description,"A date/time library for Elixir\n\nFully timezone-aware, using the Olson Timezone database\n\n- Supports local-timezone lookups\n- Supports POSIX-style timezones\n\nProvides a broad array of Date helper functions\n\n- shifting/adding/subtracting\n- diffing\n- comparing\n- conversions\n- get day of week, week of year, ISO dates, and names for each\n- get the beginning or ending of a given week\n- get the beginning or ending of a year, quarter, week, or month\n- get days in a given month\n- normalization\n\nProvides a broad array of Time helpers\n\n- convert to and from units: weeks, days, hours, seconds, ms, and nanoseconds\n- measure execution time\n- diff/compare\n- to/from 12/24 hour clock times\n- add/subtract\n\nSafe DateTime string formatting and parsing\n\n- Informative parser errors\n- Supports strftime, as well as an easier to read formatter, i.e. `{ISO:Basic}`, `{YYYY}`\n- Supports many formats out of the box: ISO8601 basic and extended, RFC822, RFC1123, RFC3339, ANSIC, UNIX\n\nExtendable\n\n- Protocols for core modules like the parser tokenizer\n- Easy to wrap to add extra functionality\n\nCan be used with Phoenix and Ecto when used with timex_ecto package\n"},
               {modules,['Elixir.Enumerable.Timex.Interval','Elixir.Timex',
                         'Elixir.Timex.Date','Elixir.Timex.Date.Convert',
                         'Elixir.Timex.Date.Convert.Timex.DateTime',
@@ -21,6 +22,8 @@
                         'Elixir.Timex.Parse.DateTime.Tokenizers.Directive',
                         'Elixir.Timex.Parse.DateTime.Tokenizers.Strftime',
                         'Elixir.Timex.Parse.ParseError',
+                        'Elixir.Timex.Parse.Timezones.Posix',
+                        'Elixir.Timex.Parse.Timezones.Posix.PosixTimezone',
                         'Elixir.Timex.Parse.ZoneInfo.Parser',
                         'Elixir.Timex.Parse.ZoneInfo.Parser.Header',
                         'Elixir.Timex.Parse.ZoneInfo.Parser.LeapSecond',
@@ -31,7 +34,6 @@
                         'Elixir.Timex.Timezone.Local',
                         'Elixir.Timex.TimezoneInfo','Elixir.Timex.Utils']},
               {registered,[]},
-              {vsn,"1.0.0"},
-              {applications,[kernel,stdlib,elixir,logger,tzdata]},
+              {vsn,"1.0.2"},
               {included_applications,[combine]},
-              {local_timezone,nil}]}.
+              {env,[{local_timezone,nil}]}]}.

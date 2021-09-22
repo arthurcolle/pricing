@@ -40,19 +40,22 @@ defmodule Combine do
     end
   end
 
-  @type parser :: Combine.Parsers.Base.parser
+  @type parser           :: (ParserState.t() -> ParserState.t)
+  @type previous_parser  :: parser | nil
 
   @doc """
   Given an input string and a parser, applies the parser to the input string,
   and returns the results as a list, or an error tuple if an error occurs.
   """
-  @spec parse(String.t, parser) :: [term] | {:error, term}
-  def parse(input, parser) do
+  @spec parse(any, parser, Keyword.t) :: [term] | Keyword.t | {:error, term}
+  def parse(input, parser, options \\ []) do
     case parser.(%ParserState{input: input}) do
-      %ParserState{status: :ok, results: res} ->
-        res |> Enum.reverse |> Enum.filter_map(&ignore_filter/1, &filter_ignores/1)
-      %ParserState{error: res}                -> {:error, res}
-      x                                       -> {:error, {:fatal, x}}
+      %ParserState{status: :ok} = ps ->
+        transform_state(ps, options)
+      %ParserState{error: res} ->
+        {:error, res}
+      x ->
+        {:error, {:fatal, x}}
     end
   end
 
@@ -63,13 +66,7 @@ defmodule Combine do
   @spec parse_file(String.t, parser) :: [term] | {:error, term}
   def parse_file(path, parser) do
     case File.read(path) do
-      {:ok, contents} ->
-        case parser.(%ParserState{input: contents}) do
-          %ParserState{status: :ok, results: res} ->
-            res |> Enum.reverse |> Enum.filter_map(&ignore_filter/1, &filter_ignores/1)
-          %ParserState{error: res}                -> {:error, res}
-          x                                       -> {:error, {:fatal, x}}
-        end
+      {:ok, contents} -> parse(contents, parser)
       {:error, _} = err -> err
     end
   end
@@ -78,8 +75,26 @@ defmodule Combine do
   defp ignore_filter(_), do: true
 
   defp filter_ignores(element) when is_list(element) do
-    Enum.filter_map(element, &ignore_filter/1, &filter_ignores/1)
+    element |> Enum.filter(&ignore_filter/1) |> Enum.map(&filter_ignores/1)
   end
   defp filter_ignores(element), do: element
+
+  defp transform_state(state, options) do
+    defaults = [keyword: false]
+    options = Keyword.merge(defaults, options) |> Enum.into(%{})
+    results = state.results |> Enum.reverse |> Enum.filter(&ignore_filter/1) |> Enum.map(&filter_ignores/1)
+    if options.keyword do
+        labels = state.labels |> Enum.map(&String.to_atom/1) |> Enum.reverse
+        can_zip? = length(labels) == length(results)
+        case {results, can_zip?} do
+            {[h|tail], _} when is_list(h) -> Enum.map([h|tail], &Enum.zip(labels, &1))
+            {_, true} -> labels |> Enum.zip(results)
+            _ -> raise("Can not label all parsed results")
+        end
+    else
+        results
+    end
+  end
+
 
 end

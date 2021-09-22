@@ -17,6 +17,7 @@ defmodule Tzdata.LeapSecParser do
     |> Stream.map(&(uncomment_expiry_line(&1)))
     |> filter_comment_lines
     |> filter_empty_lines
+    |> filter_dummy_line
     |> Stream.map(&(strip_comment(&1))) # Strip comments at line end. Like this comment.
     |> Stream.map(&(process_line(&1)))
     |> Enum.to_list
@@ -76,8 +77,13 @@ defmodule Tzdata.LeapSecParser do
 
   # We assume that the head of the list is the element with the expiry timestamp
   defp organize_into_map([expiry_element = %{expires_at: _} | tail]) do
-    %{valid_until: expiry_element[:expires_at],
+    %{valid_until: expiry_element.expires_at,
       leap_seconds: tail
      }
+  end
+
+  # leap-seconds.list has a line that is not really a leap second. It starts with 2272060800
+  def filter_dummy_line(stream) do
+    Stream.filter(stream, fn x -> !Regex.match?(~r/2272060800.*#/, x) end)
   end
 end

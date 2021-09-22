@@ -16,8 +16,11 @@ defmodule Pricing.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :tzdata, :porcelain]]
+    [
+      applications: [:logger, :tzdata, :porcelain]
+    ]
   end
+
 
   defp package do
     [ files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md"],
@@ -28,9 +31,10 @@ defmodule Pricing.Mixfile do
 
   defp deps do
     [
+      {:plug, "~> 1.3"},
       {:timex, "~> 1.0.0"},
       {:porcelain, "~> 2.0.1"},
-      {:poison, "~> 3.1.0"},
+      {:poison, "~> 3.1.0"}
     ]
   end
 end

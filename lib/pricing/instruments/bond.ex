@@ -1,7 +1,7 @@
-defmodule Bond do
-	@moduledoc """
-		Zero-coupon bond
-	"""
+# defmodule Bond do
+#	@moduledoc """
+#		Zero-coupon bond
+#	"""
 
-	def priceable
-end
+#	def priceable
+# end

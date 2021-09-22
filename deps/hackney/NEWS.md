@@ -1,5 +1,280 @@
 # NEWS
 
+1.17.4 - 2021-03-18
+-------------------
+
+- fix checking when socket is put back in the pool when the requester died.
+
+1.17.3 - 2021-03-17
+-------------------
+
+- fix: ensure we release a socket in the pool when the requester died before beeing monitored.
+
+1.17.2 - 2021-03-16
+-------------------
+
+- use parse_trans 3.3.1 only (fix compatibility with Erlang < 21)
+- bump certifi version
+- Allow merging of SSL opts
+
+1.17.1 - 2021-03-15
+-------------------
+
+- fix: Avoid `parse_trans` warning when using hackney as a dependency
+- fix: Link checkout process to fix dangling aborted request
+
+1.17.0 - 2020-12-19
+-------------------
+
+- fix SSL compatibility with erlang OTP 23
+- handle empty trailers
+- fix race condition in connection pool
+- fix memory leak in connection pool
+- IDNA update to unicode 13.0.0
+- fix build on macosx with OTP >= 20.1
+- fix network Location on redirect
+- produce uppercase hexadecimal in URLS
+- pool queue count metric is now named `queue_count`
+- miscellaneous fixes in documentation
+
+
+** possible breaking change **
+
+- pool queue count metric is now named `queue_count`. You should update your dashboard to reflect it.
+
+- possible breacking changes when producing uppercase hexadecimal in urls
+
+This change the behaviour of urlencode and pathencode to produce
+uppercase hexadecimal to comply to the RFC3986 which may affect
+systems using URL as signature or in an hash.
+
+1.16.0 - 2020-05-25
+-------------------
+
+
+- pool: cache connection IDs
+- pool: make sure to reuse a connection if the options match the one given in the request. fix usage with proxy and ssl
+  connections
+- url: handle fragment correctly, a fragment is parsed first to not be mistaken with an URL
+- ssl: fix validation with Erlang 19 & Erlang 20
+- ssl: handle tlsv1.3 on Erlang OTP 23
+- ssl: increase validation depth to match openssl default
+- ssl: optimiaz partial chain handling
+- ssl: fix hostname checking and correctly handle SNI
+- ssl: fix ciphers
+- request: fix regression with fully fqdn
+- ssl: fix usage with OTP 23
+- url: decode username/password for basic auth parameters
+- request: do not normalize when converting relative redirect to absolute
+- ssl: update to certifi 2.5.2
+- request: handle Connection: close response header for stteam
+- http: handle leading new lines in HTTP messages
+- http: handle trailers in persistent connection
+- pool: update pool timeout docummentation
+- url: fix urlencode
+
+1.15.2 - 2019-09-25
+-------------------
+
+- doc: fix test run example in readme
+- fix: hackney stream, send `hackney_response` before calling `handle_error`
+- fix: error remove ssl `honor_cipher_order` option
+- doc: document self-signed certificate usage
+- bump `ssl_verify_fun` to 1.1.5
+- fix: don't use default pool if set to false
+- fix: `hackney_headers_new:store/3`  fix value appending to a list
+- fix: miscellaneous specs
+- doc: miscellaneous improvements
+
+
+1.15.1 - 2019-02-26
+-------------------
+
+- fix: don't try to encode to IDN with full ASCII names.
+
+> this behaviour is similar to curl and fix errors some people had with docker
+> creating domain names containing a `_`
+
+- doc: clarify `recv_timeout` usage
+- fix: don't try to encode hostname IPs to IDN
+- fix: path encoding to support `(` `)` characters
+- bump mimerl to 1.2
+- bump certifi to 2.5.1
+
+
+1.15.0 - 2019-01-04
+-------------------
+
+- improve multipart: send form with a field names for files
+- fix pool `checkout_cancel`: reduce the number of pending requests
+
+1.14.3 - 2018-09-29
+-------------------
+
+- idna: don't try to encode a unix socket path
+
+1.14.2 - 2018-09-28
+-------------------
+
+- fix: don't IDNA encode the host with unix scheme
+- doc: document `basic_auth` setting
+
+1.14.0 - 2018-09-12
+-------------------
+
+- bump to certifi 2.4.2
+- bump to idna 0.6.0
+- fix support of rebar2
+- fix specs
+- add `hackney:sockname/1` adn `hackney:peername/1` functions
+- add new `checkout_timeout` option for clarity
+- improve `hackney_url:parse_qs/1` to trim leading and trailing empty values
+
+
+1.13.0 - 2018-06-22
+-------------------
+
+- fix compatibility with Erlang/OTP 21
+- fix parsing query parameters on url without path (#512)
+- bump idna to 1.5.2: fix compatibility with rebar2 (#509)
+- fix accessing HTTPS sites with an IP address (#494)
+
+1.12.1 - 2018-04-03
+-------------------
+
+- fix terminate_async_response (#498)
+
+1.12.0 - 2018-04-03
+-------------------
+
+- fix socks5 badarg error when an IP is given
+- upgrade IDNA to 5.1.1
+- upgrade certifi to 2.3.1
+- fix handling of requests with content-length or transfer-encoding given (#475)
+- improvements: send SNI in socks5 SSL
+- fix:  Allow trailing spaces at the end of chunk sizes (#489)
+- fix: set once the metrics engine
+- fix leak in the socket pool (#462)
+- fix doc
+
+1.11.0 - 2018-01-23
+-------------------
+
+- add: send SNI for Erlang >= 17
+- fix: better handling of stream exits in `hackney_manager`
+- improvement: remove high priority flag from the pool process
+- fix: change when hackney loads the hackney metric module (speed improvement)
+- fix: return value from the function `del_from_queue` in connection pool
+- fix: handle empty or invalid content-length
+- fix: documentation on removed method
+
+
+1.10.1 - 2017-10-20
+-------------------
+
+- improvement: ignore port empty values on redirect (#444)
+- fix: fix reference leak introduced in latest version (#445)
+- fix: stream termination, don't raise an error on normal exit
+
+1.10.0 - 2017-10-18
+-------------------
+
+- fix owner tracking (#443)
+- fix: fix deadlock in `hackney_pool` during request timeout (#420)
+- fix: set PoolHandler on connect (#427)
+- fix: fix unicode in include file (#426)
+
+1.9.0 - 2017-07-30
+------------------
+
+- security: certifi 2.0.0
+- dependency: update idna 5.1.0 (fix windows build and usage with elixir)
+- doc: fix typo `hackney_multipart` doc (#422)
+
+1.8.6 - 2017-06-09
+--------------------
+
+- fix: cleanup socket in async request (#411)
+
+1.8.5 - 2017-05-30
+------------------
+
+- fix: dialyzer
+
+1.8.4 - 2017-05-28
+------------------
+
+- fix: tests
+- dependency: update idna  5.0.2 (fix compatibility with erlang R20)
+
+1.8.3 - 2017-05-22
+------------------
+
+- security: certifi 1.2.1
+- dependency: update idna  5.0.1
+
+1.8.2 - 2017-05-20
+------------------
+
+- fix: race condition in controlling process (#407)
+- fix: spec of #hackney_url{} (#404)
+- fix: make sure to not lost a message during hiberntion in async request
+- security: certifi 1.2.0
+- dependency: update idna  5.0.0
+
+1.8.0 - 2017-04-20
+-----------------
+
+- fix: undefined function (#393)
+- fix: close connection if proxy handshake failed (#392)
+- fix: handle all headers with the new datastructure introduced in 1.7.0 (#395)
+- fix: host header when redirect (#400)
+- fix: use connect timeout when retrieving from the pool (#402)
+- security: new certifi version
+
+1.7.1 - 2017-03-02
+------------------
+
+- fix: regression in headers handling (handle different key types)
+
+1.7.0 - 2017-03-01
+------------------
+
+- fix: new datastructure to handle headers (#390)
+- security: new certifi version
+
+1.6.6 - 2017-02-26
+------------------
+
+- fix: fix header appending
+- fix: Url encode host header for unix domain sockets (#382)
+- security: new certifi version
+- doc: fix few typos
+
+1.6.4 - 2016-12-22
+------------------
+
+- add: optional urlencode options to qs (#368)
+- fix: handle continuation lines in HTTP headers correctly (#366)
+- doc: Fix a few documentation typos
+
+1.6.3 - 2016-10-27
+------------------
+
+- fix: handle trailing whitespace in header values
+
+1.6.2 - 2016-10-22
+------------------
+
+- add: unix sockets support on Erlang > 19
+- fix: `hackney_multiprart` for Erlang < 17
+- add: new `socks5_resolver` function
+- fix: `hackney_util:merge_opts/2`
+- improvements: inet6 support in socks5 sockets
+- doc: miscenaleous docs fixes
+- security: being more strict in ssl support
+- security: bump to certifi 0.7
+
 1.6.1 - 2016-07-10
 ------------------
 - fix: close socket on error (#308)
@@ -501,7 +776,7 @@ fix: fix file upload content type
 - Set the connection timeout
 - Make sure sendfile correctly handle chunked encoding
 - Add support for partial file uploads
-- Return received buffer when no content lenght is given (http 1.0)
+- Return received buffer when no content length is given (http 1.0)
 - Instead of returning `{error, closed}`, return `{error, {closed,
   Buffer}}` when you receive the body, so you can figure what happened
 and maybe use the partial body.

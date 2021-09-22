@@ -4,25 +4,25 @@ defmodule Porcelain.Mixfile do
   def project do
     [
       app: :porcelain,
-      version: "2.0.1",
+      version: "2.0.3",
       elixir: ">= 0.14.3 and < 2.0.0",
-      deps: deps,
-      description: description,
-      docs: docs,
-      package: package,
+      deps: deps(),
+      description: description(),
+      docs: docs(),
+      package: package(),
     ]
   end
 
   def application do
     [
-      applications: [:logger],
+      applications: [:logger, :crypto],
       mod: {Porcelain.App, []},
     ]
   end
 
   def docs do
     [
-      extras: ["README.md"],
+      extras: [{"README.md", title: "Readme"}],
     ]
   end
 

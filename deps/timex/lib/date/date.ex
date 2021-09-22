@@ -46,6 +46,7 @@ defmodule Timex.Date do
   @type datetime :: { date, time }
   @type dtz :: { datetime, TimezoneInfo.t }
   @type iso_triplet :: { year, weeknum, weekday }
+  @type phoenix_datetime_select_params :: %{String.t => String.t}
 
   # Constants
   @valid_months 1..12
@@ -287,11 +288,13 @@ defmodule Timex.Date do
       > Date.from(:erlang.localtime)                 #=> %Datetime{...}
       > Date.from(:erlang.localtime, :local)         #=> %DateTime{...}
       > Date.from({2014,3,16}, "America/Chicago")    #=> %DateTime{...}
+      > Date.from(phoenix_datetime_select_params)    #=> %DateTime{...}
 
   """
-  @spec from(datetime | date) :: DateTime.t
-  @spec from(datetime | date, :utc | :local | TimezoneInfo.t | binary) :: DateTime.t
+  @spec from(DateTime.t | datetime | date) :: DateTime.t
+  @spec from(DateTime.t | datetime | date, :utc | :local | TimezoneInfo.t | binary | phoenix_datetime_select_params) :: DateTime.t
 
+  def from(%DateTime{} = date), do: date
   def from(datetime), do: from(datetime, :utc)
 
   def from({y,m,d} = date, :utc) when is_integer(y) and is_integer(m) and is_integer(d),
@@ -322,6 +325,22 @@ defmodule Timex.Date do
         construct(datetime, tzinfo)
       {:error, _} = error ->
         error
+    end
+  end
+  def from(%{"year" => _, "month" => _, "day" => _, "hour" => _, "min" => _} = dt, tz) do
+    validated = Enum.reduce(dt, %{}, fn 
+      _, :error -> :error
+      {key, value}, acc ->
+        case Integer.parse(value) do
+          {v, _} -> Map.put(acc, key, v)
+          :error -> :error
+        end
+    end)
+    case {validated, tz} do
+      {%{"year" => y, "month" => m, "day" => d, "hour" => h, "min" => mm}, tz} ->
+        from({{y,m,d},{h,mm,0}}, tz)
+      {:error, _} ->
+        {:error, :invalid}
     end
   end
 
@@ -522,7 +541,7 @@ defmodule Timex.Date do
 
       # Creating a DateTime from the given day
       iex> expected = #{__MODULE__}.from({{2015, 6, 29}, {0,0,0}})
-      iex> (#{__MODULE__}.from_iso_day(180) === expected)
+      iex> (expected === #{__MODULE__}.from_iso_day(180, #{__MODULE__}.from({{2015,1,1}, {0,0,0}})))
       true
 
       # Shifting a DateTime to the given day
@@ -1088,14 +1107,31 @@ defmodule Timex.Date do
     diff(this, other, :days) |> div(7)
   end
   def diff(this, other, :months) do
-    %DateTime{:year => y1, :month => m1} = universal(this)
-    %DateTime{:year => y2, :month => m2} = universal(other)
-    ((y2 - y1) * 12) + (m2 - m1)
+    days_between = diff(this, other, :days)
+    cond do
+      days_between < 0 && days_between <= -30 ->
+        div(days_between, 30)
+      days_between > 0 && days_between >= 30 ->
+        div(days_between, 30)
+      days_between < 0 && days_between > -28 ->
+        0
+      days_between > 0 && days_between < 28 ->
+        0
+      :else ->
+        # TODO: No special handling of variable days in month
+        0
+    end
   end
   def diff(this, other, :years) do
-    %DateTime{:year => y1} = universal(this)
-    %DateTime{:year => y2} = universal(other)
-    y2 - y1
+    days_between = diff(this, other, :days)
+    cond do
+      days_between > 0 && days_between >= 365 ->
+        div(days_between, 365)
+      days_between < 0 && days_between <= -365 ->
+        div(days_between, 365)
+      :else ->
+        0
+    end
   end
 
   @doc """
@@ -1275,10 +1311,7 @@ defmodule Timex.Date do
   defp validate({year, month, day}) do
     # Check if we got past the last day of the month
     max_day = days_in_month(year, month)
-    if day > max_day do
-      day = max_day
-    end
-    {year, month, day}
+    {year, month, min(day, max_day)}
   end
 
   defp mod(a, b), do: rem(rem(a, b) + b, b)
@@ -1364,9 +1397,9 @@ defmodule Timex.Date do
   @doc """
   Given a date returns a date at the beginning of the quarter.
 
-    iex> date = #{__MODULE__}.from {{2015, 6, 15}, {12,30,0}}, "CEST"
+    iex> date = #{__MODULE__}.from {{2015, 6, 15}, {12,30,0}}, "CST"
     iex> #{__MODULE__}.beginning_of_quarter date
-    #{__MODULE__}.from {{2015, 4, 1}, {0, 0, 0}}, "CEST"
+    #{__MODULE__}.from {{2015, 4, 1}, {0, 0, 0}}, "CST"
 
   """
   @spec beginning_of_quarter(DateTime.t) :: DateTime.t
@@ -1382,9 +1415,9 @@ defmodule Timex.Date do
   @doc """
   Given a date or a year and month returns a date at the end of the quarter.
 
-    iex> date = #{__MODULE__}.from {{2015, 6, 15}, {12,30,0}}, "CEST"
+    iex> date = #{__MODULE__}.from {{2015, 6, 15}, {12,30,0}}, "CST"
     iex> #{__MODULE__}.end_of_quarter date
-    #{__MODULE__}.from {{2015, 6, 30}, {23, 59, 59}}, "CEST"
+    #{__MODULE__}.from {{2015, 6, 30}, {23, 59, 59}}, "CST"
 
     iex> #{__MODULE__}.end_of_quarter 2015, 4
     #{__MODULE__}.from {{2015, 6, 30}, {23, 59, 59}}

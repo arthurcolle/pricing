@@ -1,6 +1,10 @@
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
+config :porcelain, :driver, Porcelain.Driver.Goon
+config :porcelain, :goon_driver_path, "./goon/goon"
+
+
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
