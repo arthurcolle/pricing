@@ -34,8 +34,7 @@ defmodule Pricing.Mixfile do
       {:plug, "~> 1.3"},
       {:timex, "~> 1.0.0"},
       {:porcelain, "~> 2.0.1"},
-      {:poison, "~> 3.1.0", override: true},
-      {:yahoo_finance_elixir, "~> 0.1.3"},
+       {:poison, "~> 3.1.0", [env: :prod, hex: "poison", repo: "hexpm"]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
 
     ]
