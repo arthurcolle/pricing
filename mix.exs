@@ -4,8 +4,8 @@ defmodule Pricing.Mixfile do
   def project do
     [app: :pricing,
      description: "Pricing financial instruments in Elixir",
-     version: "0.0.1",
-     elixir: "~> 1.2",
+     version: "0.6.9",
+     elixir: "~> 1.14.0",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps,
@@ -17,7 +17,7 @@ defmodule Pricing.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger, :tzdata, :porcelain]
+      applications: [:logger, :tzdata, :porcelain, :timex, :yahoo_finance_elixir],
     ]
   end
 
@@ -34,7 +34,10 @@ defmodule Pricing.Mixfile do
       {:plug, "~> 1.3"},
       {:timex, "~> 1.0.0"},
       {:porcelain, "~> 2.0.1"},
-      {:poison, "~> 3.1.0"}
+      {:poison, "~> 3.1.0", override: true},
+      {:yahoo_finance_elixir, "~> 0.1.3"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+
     ]
   end
 end

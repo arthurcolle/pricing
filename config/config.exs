@@ -3,7 +3,7 @@
 use Mix.Config
 config :porcelain, :driver, Porcelain.Driver.Goon
 config :porcelain, :goon_driver_path, "./goon/goon"
-
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 
 # This configuration is loaded before any dependency and is restricted
